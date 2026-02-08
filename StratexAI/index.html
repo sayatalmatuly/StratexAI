@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Stratex AI — Business AI Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css" />
+    <meta
+      name="description"
+      content="Stratex AI helps teams write proposals, emails, reports, SOPs, and streamline business workflows."
+    />
+  </head>
+
+  <body>
+    <div class="bg">
+      <div class="aurora-blob a1"></div>
+      <div class="aurora-blob a2"></div>
+      <div class="aurora-blob a3"></div>
+      <div class="grid-overlay"></div>
+      <div class="noise-overlay"></div>
+      <div class="vignette-overlay"></div>
+    </div>
+
+    <header class="nav">
+      <div class="container nav__inner">
+        <a class="brand" href="#">
+          <div class="brand__logo">
+            <div class="brand__spark"></div>
+          </div>
+          <span class="brand__text">Stratex</span>
+          <span class="brand__badge">AI</span>
+        </a>
+
+        <nav class="nav__links">
+          <a href="#features">Features</a>
+          <a href="#usecases">Use cases</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#faq">FAQ</a>
+        </nav>
+
+        <div class="nav__actions">
+          <a class="btn btn--ghost" href="#pricing">Live demo</a>
+          <a class="btn btn--primary" href="chat.html">
+            Open chat <span class="btn__icon">→</span>
+          </a>
+        </div>
+        
+        <button id="burger" class="nav__burger" aria-label="Menu">
+          <span></span><span></span>
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero fade-in-up">
+        <div class="container hero__grid">
+          <div class="hero__content">
+            <div class="pill pill--glow">
+              <span class="dot-pulse"></span>
+              <span>AI for sales • ops • finance • support</span>
+            </div>
+
+            <h1 class="hero__title">
+              Turn business requests into
+              <span class="text-gradient">ready-to-send outputs</span>
+            </h1>
+
+            <p class="lead">
+              Write proposals, emails, reports, and SOPs in a clean, executive format.
+              Built for B2B teams: structured, measurable, and fast.
+            </p>
+
+            <div class="hero__cta">
+              <div class="chat-split" id="chatSplit">
+  <a class="btn btn--primary chat-split__main" href="chat.html">
+    Open chat <span class="btn__icon">→</span>
+  </a>
+
+  <button class="btn btn--primary chat-split__toggle" type="button" aria-label="Open chat menu">
+    ▾
+  </button>
+
+  <div class="chat-menu glass-panel" id="chatMenu" aria-hidden="true">
+    <a class="chat-menu__item" href="chat.html">
+      <span class="chat-menu__title">Web AI chat</span>
+      <span class="chat-menu__desc">Full workspace & history</span>
+    </a>
+
+    <div class="chat-menu__divider"></div>
+
+    <a class="chat-menu__item" href="https://t.me/YOUR_BOT_USERNAME" target="_blank" rel="noopener">
+      <span class="chat-menu__title">Telegram bot</span>
+      <span class="chat-menu__desc">Fast access on the go</span>
+    </a>
+  </div>
+</div>
+              <a class="btn btn--glass btn--xl" href="#features">Explore features</a>
+            </div>
+
+            <div class="hero__meta">
+              <div class="stat">
+                <div class="stat__num text-gradient">60%</div>
+                <div class="stat__label">less routine</div>
+              </div>
+              <div class="stat">
+                <div class="stat__num text-gradient">1 min</div>
+                <div class="stat__label">to result</div>
+              </div>
+              <div class="stat">
+                <div class="stat__num text-gradient">24/7</div>
+                <div class="stat__label">availability</div>
+              </div>
+            </div>
+
+            <div class="logos-wrapper">
+              <span class="logos__label">Trusted format for:</span>
+              <div class="logos__row">
+                <span class="logo-pill">Logistics</span>
+                <span class="logo-pill">FinTech</span>
+                <span class="logo-pill">SaaS</span>
+                <span class="logo-pill">Retail</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="hero__panel">
+            <div class="device-card glass-panel tilt-effect">
+              <div class="device__header">
+                <div class="dots">
+                  <span></span><span></span><span></span>
+                </div>
+                <div class="device__title">Stratex AI</div>
+                <div class="status-badge"><span class="status-dot"></span> Online</div>
+              </div>
+
+              <div class="device__body">
+                <div class="msg-bubble user">
+                  <div class="bubble-tag">You</div>
+                  Draft a 1–2 page sales proposal for an AI support assistant.
+                </div>
+                <div class="msg-bubble ai">
+                  <div class="bubble-tag">AI</div>
+                  I’ll generate: executive summary, scope, rollout (2 weeks), KPIs, ROI estimate, risks.
+                </div>
+
+                <div class="doc-preview">
+                  <div class="doc__h">Proposal Outline</div>
+                  <div class="doc__grid">
+                    <div class="doc__item">
+                      <div class="lbl">Goal</div>
+                      <div class="val">Reduce FRT by 40%</div>
+                    </div>
+                    <div class="doc__item">
+                      <div class="lbl">Timeline</div>
+                      <div class="val">14 days (Pilot → Launch)</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="device__input-area">
+                <div class="fake-input">Type your request... <span class="cursor">|</span></div>
+                <div class="send-btn-fake">↑</div>
+              </div>
+            </div>
+
+            <div class="floater f1 glass-panel">
+              <div class="floater__icon">⚡</div>
+              <div>
+                <div class="floater__t">Instant Drafts</div>
+                <div class="floater__d">Proposals & Emails</div>
+              </div>
+            </div>
+            <div class="floater f2 glass-panel">
+              <div class="floater__icon">🧠</div>
+              <div>
+                <div class="floater__t">Executive Mode</div>
+                <div class="floater__d">Clean structure</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="features" class="section">
+        <div class="container">
+          <div class="section__head">
+            <h2 class="section-title">Built for <span class="text-white">real work</span></h2>
+            <p class="section-sub">Strong structure, business tone, measurable outcomes.</p>
+          </div>
+
+          <div class="grid-3">
+            <article class="feature-card glass-panel">
+              <div class="icon-box">✍️</div>
+              <h3>Emails & Docs</h3>
+              <p>Proposals, client replies, requirements, briefs, internal docs.</p>
+            </article>
+
+            <article class="feature-card glass-panel">
+              <div class="icon-box">📈</div>
+              <h3>Analytics</h3>
+              <p>SWOT, KPI logic, risk plans, 2–4 week roadmaps.</p>
+            </article>
+
+            <article class="feature-card glass-panel">
+              <div class="icon-box">🧩</div>
+              <h3>Process Design</h3>
+              <p>Checklists, SOPs, QA rules, handoffs, SLAs.</p>
+            </article>
+
+            <article class="feature-card glass-panel">
+              <div class="icon-box">🛡️</div>
+              <h3>Brand Voice</h3>
+              <p>Keep messaging consistent across teams with guidelines.</p>
+            </article>
+
+            <article class="feature-card glass-panel">
+              <div class="icon-box">🎯</div>
+              <h3>Sales Playbooks</h3>
+              <p>Discovery, objections, scripts, follow-ups.</p>
+            </article>
+
+            <article class="feature-card glass-panel">
+              <div class="icon-box">💬</div>
+              <h3>Chat-first UX</h3>
+              <p>One interface for requests, outputs, and formatting.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="pricing" class="section section--darker">
+        <div class="container">
+          <div class="section__head center">
+            <h2 class="section-title">Simple Pricing</h2>
+            <p class="section-sub">Transparent rates. Cancel anytime.</p>
+          </div>
+
+          <div class="pricing-grid">
+            <div class="price-card glass-panel">
+              <div class="price-header">
+                <h3>Starter</h3>
+                <p>For individuals</p>
+              </div>
+              <div class="price-val">0 <small>KZT</small></div>
+              <ul class="check-list">
+                <li>Core templates</li>
+                <li>4 ready scenarios</li>
+                <li>7-day history</li>
+              </ul>
+              <a href="chat.html" class="btn btn--glass btn--block">Try Free</a>
+            </div>
+
+            <div class="price-card glass-panel popular">
+              <div class="popular-tag">Best Value</div>
+              <div class="price-header">
+                <h3>Team</h3>
+                <p>For professionals</p>
+              </div>
+              <div class="price-val">Custom</div>
+              <ul class="check-list">
+                <li>All templates</li>
+                <li>Brand voice AI</li>
+                <li>90-day history</li>
+                <li>Priority support</li>
+              </ul>
+              <a href="chat.html" class="btn btn--primary btn--block btn--glowy">Get Started</a>
+            </div>
+
+            <div class="price-card glass-panel">
+              <div class="price-header">
+                <h3>Business</h3>
+                <p>For scale</p>
+              </div>
+              <div class="price-val">Custom</div>
+              <ul class="check-list">
+                <li>Custom workflows</li>
+                <li>API Access</li>
+                <li>SSO & Security</li>
+              </ul>
+              <a href="#faq" class="btn btn--glass btn--block">Contact Us</a>
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      <footer class="footer">
+        <div class="container footer__inner">
+            <div class="footer__brand">
+                <span class="brand__text">Stratex</span>
+                <p class="muted">AI for serious business.</p>
+            </div>
+            <div class="footer__links">
+                <a href="#">Privacy</a>
+                <a href="#">Terms</a>
+                <a href="#">Contact</a>
+            </div>
+        </div>
+      </footer>
+
+    </main>
+    <script src="script.js" defer></script>
+  </body>
+</html>
