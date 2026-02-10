@@ -14,6 +14,7 @@ from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
 from sqlalchemy.orm import declarative_base, sessionmaker
 from datetime import datetime as dt
 from openpyxl import Workbook
+from openpyxl.styles import Font
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
@@ -38,38 +39,62 @@ def generate_excel(text: str, filename: str):
     ws = wb.active
     ws.title = "Report"
 
-    def split_row(line: str):
+    def parse_line(line: str):
         line = (line or "").strip()
         if not line:
-            return [""]
+            return None
         if re.match(r"^[\s\-\|]+$", line):
-            return []
+            return "sep", []
         if "\t" in line:
-            return [p.strip() for p in line.split("\t")]
+            return "row", [p.strip() for p in line.split("\t")]
         if "|" in line:
-            parts = [p.strip() for p in re.split(r"\s*\|\s*", line) if p.strip()]
+            parts = [p.strip() for p in re.split(r"\s*\|\s*", line)]
+            parts = [p for p in parts if p != ""]
+            if len(parts) == 1:
+                return "header", parts
             if parts:
-                return parts
-        if " | " in line:
-            return [p.strip() for p in line.split(" | ")]
+                return "row", parts
         if "; " in line:
             parts = [p.strip() for p in line.split("; ")]
             if len(parts) >= 2:
-                return parts
+                return "row", parts
         if ": " in line:
             left, right = line.split(": ", 1)
             if len(left) <= 40:
-                return [left.strip(), right.strip()]
-        line = re.sub(r"^[-?]\s*", "", line)
-        return [line]
+                return "row", [left.strip(), right.strip()]
+        line = re.sub(r"^[-•]\s*", "", line)
+        return "header", [line]
+
+    blocks = []
+    current = []
+    for raw in text.split("\n"):
+        parsed = parse_line(raw)
+        if parsed is None:
+            if current:
+                blocks.append(current)
+                current = []
+            continue
+        kind, parts = parsed
+        if kind == "sep":
+            continue
+        current.append((kind, parts))
+    if current:
+        blocks.append(current)
 
     row_idx = 1
-    for line in text.split("\n"):
-        parts = split_row(line)
-        if not parts:
-            continue
-        for j, part in enumerate(parts, start=1):
-            ws.cell(row=row_idx, column=j, value=part)
+    header_font = Font(bold=True)
+    for block in blocks:
+        max_cols = max((len(p) for k, p in block if k == "row"), default=1)
+        for kind, parts in block:
+            if kind == "header":
+                ws.cell(row=row_idx, column=1, value=parts[0]).font = header_font
+                if max_cols > 1:
+                    ws.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=max_cols)
+                row_idx += 1
+                continue
+            for j, part in enumerate(parts, start=1):
+                ws.cell(row=row_idx, column=j, value=part)
+            row_idx += 1
         row_idx += 1
 
     path = os.path.join(GENERATED_DIR, f"{filename}.xlsx")
