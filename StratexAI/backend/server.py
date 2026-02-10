@@ -458,7 +458,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 OPENAI_MODEL = os.getenv("OPENAI_MODEL")
 
-TAVILY_API_KEY = "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"
+TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
 
 
 
@@ -1557,5 +1557,6 @@ if __name__ == '__main__':
     
 
     app.run(debug=True, port=5000, host='0.0.0.0')
+
 
 
