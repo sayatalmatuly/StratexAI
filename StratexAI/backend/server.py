@@ -308,13 +308,7 @@ def detect_file_type(message: str) -> str:
 
     return "pdf"
 
-DATABASE_URL = os.getenv(
-
-    "DATABASE_URL",
-
-    "postgresql+psycopg2://postgres:alm@localhost:5432/stratex"
-
-)
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 engine = create_engine(DATABASE_URL, echo=False, future=True)
 
@@ -1353,4 +1347,5 @@ if __name__ == '__main__':
     print("   business / business2024 (full)")
 
     app.run(debug=True, port=5000, host='0.0.0.0')
+
 
