@@ -540,7 +540,13 @@ After answering ? generate in the chosen format."""
             try:
                 file_type = detect_file_type(message)
                 name = f"report_{int(datetime.now().timestamp())}"
-                content = dedupe_document_content(clean_document_content(strip_html(ai_response))).strip()
+                doc_prompt = (
+                    "Create a complete, well-structured document based on the user's request. "
+                    "Do not add any prefaces, links, or download instructions. "
+                    "Output only the document content."
+                )
+                doc_text = chat_with_ai(message, doc_prompt, conversation_history)
+                content = dedupe_document_content(clean_document_content(strip_html(doc_text))).strip()
                 if len(content) < 50:
                     raise ValueError("Generated content too short for document export")
 
