@@ -158,13 +158,21 @@ def dedupe_document_content(text: str) -> str:
 
 def detect_file_type(message: str) -> str:
     m = (message or "").lower()
-    if "xlsx" in m or "xls" in m or "excel" in m or "??????" in m or "??????" in m:
+    if "xlsx" in m or "xls" in m or "excel" in m or "эксель" in m or "ексель" in m:
         return "excel"
-    if "docx" in m or "doc" in m or "word" in m or "????" in m or "???" in m:
+    if "docx" in m or "doc" in m or "word" in m or "ворд" in m or "док" in m:
         return "word"
-    if "pdf" in m or "???" in m:
+    if "pdf" in m or "пдф" in m:
         return "pdf"
     return "pdf"
+
+def explicit_file_request(message: str) -> bool:
+    m = (message or "").lower()
+    keywords = [
+        "pdf", "docx", "doc", "word", "xlsx", "xls", "excel",
+        "пдф", "ворд", "эксель"
+    ]
+    return any(k in m for k in keywords)
 
 
 DATABASE_URL = os.getenv(
@@ -520,7 +528,7 @@ After answering ? generate in the chosen format."""
         ai_response = chat_with_ai(message, system_prompt, conversation_history, search_context)
         ai_response = markdown_to_html(ai_response)
 
-        if intent.get("needs_document") and data.get("auto_generate") is True:
+        if intent.get("needs_document") and explicit_file_request(message):
             try:
                 file_type = detect_file_type(message)
                 name = f"report_{int(datetime.now().timestamp())}"
