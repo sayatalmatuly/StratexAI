@@ -552,6 +552,8 @@ After answering ? generate in the chosen format."""
                     path = generate_pdf(content, name)
 
                 base_url = request.host_url.rstrip("/")
+                if base_url.startswith("http://"):
+                    base_url = "https://" + base_url[len("http://"):]
                 download_url = f"{base_url}/api/download/{os.path.basename(path)}"
                 doc_label = {"word": "DOCX", "excel": "XLSX", "pdf": "PDF"}.get(file_type, "DOC")
                 link_label = {"word": "WORD", "excel": "EXCEL", "pdf": "PDF"}.get(file_type, "DOC")
