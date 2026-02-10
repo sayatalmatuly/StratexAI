@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:5000/api"; 
+const API_URL = "https://stratexai-production.up.railway.app/api"; 
 
 
 let currentUser = null;  
@@ -718,6 +718,44 @@ function updateAttachButtonLabel() {
   else btn.textContent = `📎 ${selectedFiles.length}`;
 }
 
+function getFilenameFromDisposition(disposition) {
+  if (!disposition) return "";
+  const match = /filename\*?=(?:UTF-8''|")?([^\";]+)/i.exec(disposition);
+  if (!match) return "";
+  return decodeURIComponent(match[1].trim().replace(/(^\"|\"$)/g, ""));
+}
+
+async function downloadFileFromLink(href) {
+  try {
+    const r = await fetch(href, { mode: "cors", credentials: "include" });
+    if (!r.ok) throw new Error(`Download failed: ${r.status}`);
+
+    const ct = (r.headers.get("content-type") || "").toLowerCase();
+    if (ct.includes("text/html") || ct.includes("application/json")) {
+      throw new Error(`Not a file response: ${ct}`);
+    }
+
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+
+    const disp = r.headers.get("content-disposition") || "";
+    const headerName = getFilenameFromDisposition(disp);
+    const fallbackName = decodeURIComponent(href.split("/").pop() || "download");
+    const filename = headerName || fallbackName;
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (err) {
+    console.error(err);
+    window.open(href, "_blank", "noopener");
+  }
+}
+
 function setupFileAttach() {
   const attachBtn = document.getElementById("attach-btn");
   const fileInput = document.getElementById("file-input");
@@ -915,6 +953,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
   setupFileAttach();
   setupDragDrop();
+
+  const chatContainer = document.getElementById("chat-container");
+  chatContainer?.addEventListener("click", (e) => {
+    const a = e.target?.closest?.("a");
+    if (!a) return;
+    const href = a.getAttribute("href");
+    if (!href) return;
+    if (!href.includes("/api/download/")) return;
+    e.preventDefault();
+    downloadFileFromLink(href);
+  });
 
   fetch(`${API_URL}/status`)
     .then((r) => r.json())
