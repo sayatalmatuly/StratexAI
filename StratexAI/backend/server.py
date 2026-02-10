@@ -1050,11 +1050,15 @@ After answering ? generate in the chosen format."""
                 print(f"File generation error: {e}")
         db_add_message(user_id, "user", message)
         db_add_message(user_id, "assistant", ai_response)
-        response_data = {
-            "success": True,
-            "message": ai_response,
-            "is_demo": False
-        }
+        response_data = {
+            "success": True,
+            "message": ai_response,
+            "is_demo": False,
+            "debug": {
+                "needs_search": bool(intent.get("needs_search")),
+                "sources_count": len(search_results.get("sources", [])) if search_results else 0
+            }
+        }
         if search_results:
             response_data["sources"] = search_results["sources"]
         return jsonify(response_data)
