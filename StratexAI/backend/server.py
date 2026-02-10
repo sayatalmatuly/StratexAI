@@ -316,10 +316,13 @@ def chat_with_ai(message, system_prompt, conversation_history=None, search_conte
         lang = detect_language(message)
         lang_name = "Russian" if lang == "ru" else "English"
         full_system_prompt = (
-            system_prompt + "\n\n"
-            f"Current date: {datetime.now().strftime('%d.%m.%Y')}\n\n"
-            f"Language: {lang_name}. Reply strictly in {lang_name}.\n\n"
-            "Formatting rules:\n"
+            system_prompt + "\n\n"
+            f"Current date: {datetime.now().strftime('%d.%m.%Y')}\n\n"
+            f"Language: {lang_name}. Reply strictly in {lang_name}.\n\n"
+            "Hard rule: If web search is required, silently perform it and then answer. "
+            "Never say you will search, are searching, or will answer later. "
+            "No meta-commentary about searching.\n\n"
+            "Formatting rules:\n"
             "- DO NOT use Markdown (** ## `).\n"
             "- Use ONLY simple HTML tags.\n"
             "- Allowed tags: <strong>, <em>, <u>, <br>, <p>, <ul>, <li>, <h3>\n"
