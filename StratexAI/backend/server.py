@@ -316,25 +316,25 @@ def chat_with_ai(message, system_prompt, conversation_history=None, search_conte
         lang = detect_language(message)
         lang_name = "Russian" if lang == "ru" else "English"
         full_system_prompt = (
-            system_prompt + "\n\n"
-            f"Current date: {datetime.now().strftime('%d.%m.%Y')}\n\n"
-            f"Language: {lang_name}. Reply strictly in {lang_name}.\n\n"
-            "Hard rule: If web search is required, silently perform it and then answer. "
-            "Never say you will search, are searching, or will answer later. "
-            "No meta-commentary about searching.\n\n"
-            "Formatting rules:\n"
+            system_prompt + "\n\n"
+            f"Current date: {datetime.now().strftime('%d.%m.%Y')}\n\n"
+            f"Language: {lang_name}. Reply strictly in {lang_name}.\n\n"
+            "Hard rule: If web search is required, silently perform it and then answer. "
+            "Never say you will search, are searching, or will answer later. "
+            "No meta-commentary about searching.\n\n"
+            "Formatting rules:\n"
             "- DO NOT use Markdown (** ## `).\n"
             "- Use ONLY simple HTML tags.\n"
             "- Allowed tags: <strong>, <em>, <u>, <br>, <p>, <ul>, <li>, <h3>\n"
             "- Do NOT wrap everything in tags.\n"
         )
-        if search_context:
-            full_system_prompt += (
-                "\n\nContext from the web:\n"
-                f"{search_context}\n\n"
-                "Hard rule: Use ONLY the web context above. Do NOT add facts not present there. "
-                "If the context is insufficient, say so and ask to уточнить запрос."
-            )
+        if search_context:
+            full_system_prompt += (
+                "\n\nContext from the web:\n"
+                f"{search_context}\n\n"
+                "Hard rule: Use ONLY the web context above. Do NOT add facts not present there. "
+                "If the context is insufficient, say so and ask to уточнить запрос."
+            )
         messages.append({"role": "system", "content": full_system_prompt})
         if conversation_history:
             messages.extend(conversation_history[-10:])
@@ -359,6 +359,7 @@ def detect_intent(message):
         "?????", "?????", "??????", "????", "????", "???????", "??????", "????????",
         "?????", "?????", "???????", "?????", "???????", "???????", "?????????", "?????", "??????",
         "????????", "? ????", "? ?????????", "????????", "??????",
+        "??? ?????", "??? ?????", "??? ?????", "??? ??", "????? ?????????", "??????? ????????", "former name",
         "???????", "?????", "?????"
     ]
     needs_search = any(keyword in message_lower for keyword in search_keywords)
@@ -427,7 +428,31 @@ def chat():
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 - Market and trend analysis
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -435,11 +460,59 @@ def chat():
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 - Working with documents
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 - Advanced features
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -489,7 +562,43 @@ Use context from previous messages when relevant."""
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Your specializations:
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -497,11 +606,47 @@ Your specializations:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 ?? Report, plan, and document generation
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 ?? Business communication (emails, proposals)
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -513,7 +658,43 @@ Your specializations:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Working principles:
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -521,7 +702,31 @@ Working principles:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 2. Measurable ? provide concrete KPIs, timelines, numbers
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -529,7 +734,31 @@ Working principles:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 4. Practical ? focus on execution
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -541,7 +770,43 @@ Working principles:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Table formatting:
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -549,11 +814,47 @@ For tabular data, use a simple pipe-separated table (plain text, no markdown sty
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 Header 1 | Header 2
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 --- | ---
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -565,7 +866,43 @@ Row 1 | Row 2
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Document formats:
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -573,7 +910,31 @@ If the user asks for a report/plan ? FIRST ask for the format:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 - Brief (1 page)
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -581,11 +942,59 @@ If the user asks for a report/plan ? FIRST ask for the format:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 - Detailed (5+ pages)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 - Presentation (slides)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -687,7 +1096,43 @@ def analyze_document():
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Analyze the document using these criteria:
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -695,7 +1140,31 @@ Analyze the document using these criteria:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 2. Main content ? short summary
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -703,7 +1172,31 @@ Analyze the document using these criteria:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 4. Strengths ? what is done well
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -711,7 +1204,43 @@ Analyze the document using these criteria:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 6. Recommendations ? concrete next steps
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -753,7 +1282,31 @@ def market_analysis():
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 1. Current situation ? what is happening now
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -761,7 +1314,31 @@ def market_analysis():
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 3. Opportunities ? for businesses
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -769,7 +1346,43 @@ def market_analysis():
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 5. Recommendations ? concrete actions
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -826,7 +1439,55 @@ def generate_report():
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Create a {report_type} report in the following format: {format_instructions.get(format_type, 'standard')}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -838,7 +1499,31 @@ Required elements:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 - Executive summary
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -846,7 +1531,31 @@ Required elements:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 - Concrete numbers and KPIs
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -854,7 +1563,43 @@ Required elements:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 - Recommendations
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
