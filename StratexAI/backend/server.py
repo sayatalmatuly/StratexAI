@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-import os
+import os
 from openai import OpenAI
 import requests
 import json
@@ -22,7 +22,9 @@ from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
 from sqlalchemy.orm import declarative_base, sessionmaker
 from datetime import datetime as dt
 import os
-os.makedirs("generated", exist_ok=True)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+GENERATED_DIR = os.path.join(BASE_DIR, "generated")
+os.makedirs(GENERATED_DIR, exist_ok=True)
 from openpyxl import Workbook
 def generate_excel(text: str, filename: str):
     wb = Workbook()
@@ -61,7 +63,7 @@ def generate_excel(text: str, filename: str):
         for j, part in enumerate(parts, start=1):
             ws.cell(row=row_idx, column=j, value=part)
         row_idx += 1
-    path = f"generated/{filename}.xlsx"
+    path = os.path.join(GENERATED_DIR, f"{filename}.xlsx")
     wb.save(path)
     return path
 from docx import Document
@@ -69,13 +71,13 @@ def generate_word(text: str, filename: str):
     doc = Document()
     for line in text.split("\n"):
         doc.add_paragraph(line)
-    path = f"generated/{filename}.docx"
+    path = os.path.join(GENERATED_DIR, f"{filename}.docx")
     doc.save(path)
     return path
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 def generate_pdf(text: str, filename: str):
-    path = f"generated/{filename}.pdf"
+    path = os.path.join(GENERATED_DIR, f"{filename}.pdf")
     c = canvas.Canvas(path, pagesize=A4)
     y = 800
     for line in text.split("\n"):
@@ -207,8 +209,8 @@ def generate_file():
         "download_url": f"/api/download/{os.path.basename(path)}"
     })
 @app.route("/api/download/<filename>", methods=["GET"])
-def download_file(filename):
-    return send_from_directory("generated", filename, as_attachment=True)
+def download_file(filename):
+    return send_from_directory(GENERATED_DIR, filename, as_attachment=True)
 # API keys (set via environment variables)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
