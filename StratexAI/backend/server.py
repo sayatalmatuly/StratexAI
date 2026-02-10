@@ -20,15 +20,11 @@ import re
 
 import io
 
-
-
 def markdown_to_html(text: str) -> str:
 
     if not text:
 
         return ""
-
-
 
     text = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", text)
 
@@ -40,13 +36,7 @@ def markdown_to_html(text: str) -> str:
 
     text = re.sub(r"\n{2,}", "<br><br>", text)
 
-
-
     return text
-
-
-
-
 
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
 
@@ -60,8 +50,6 @@ os.makedirs("generated", exist_ok=True)
 
 from openpyxl import Workbook
 
-
-
 def generate_excel(text: str, filename: str):
 
     wb = Workbook()
@@ -69,8 +57,6 @@ def generate_excel(text: str, filename: str):
     ws = wb.active
 
     ws.title = "Report"
-
-
 
     def split_row(line: str):
 
@@ -80,21 +66,15 @@ def generate_excel(text: str, filename: str):
 
             return [""]
 
-
-
         # Skip markdown-like separators
 
         if re.match(r"^[\s\-\|]+$", line):
 
             return []
 
-
-
         if "\t" in line:
 
             return [p.strip() for p in line.split("\t")]
-
-
 
         if "|" in line:
 
@@ -104,13 +84,9 @@ def generate_excel(text: str, filename: str):
 
                 return parts
 
-
-
         if " | " in line:
 
             return [p.strip() for p in line.split(" | ")]
-
-
 
         if "; " in line:
 
@@ -120,8 +96,6 @@ def generate_excel(text: str, filename: str):
 
                 return parts
 
-
-
         if ": " in line:
 
             left, right = line.split(": ", 1)
@@ -130,13 +104,9 @@ def generate_excel(text: str, filename: str):
 
                 return [left.strip(), right.strip()]
 
-
-
         line = re.sub(r"^[-•]\s*", "", line)
 
         return [line]
-
-
 
     row_idx = 1
 
@@ -154,8 +124,6 @@ def generate_excel(text: str, filename: str):
 
         row_idx += 1
 
-
-
     path = f"generated/{filename}.xlsx"
 
     wb.save(path)
@@ -164,8 +132,6 @@ def generate_excel(text: str, filename: str):
 
 from docx import Document
 
-
-
 def generate_word(text: str, filename: str):
 
     doc = Document()
@@ -173,8 +139,6 @@ def generate_word(text: str, filename: str):
     for line in text.split("\n"):
 
         doc.add_paragraph(line)
-
-
 
     path = f"generated/{filename}.docx"
 
@@ -186,15 +150,11 @@ from reportlab.lib.pagesizes import A4
 
 from reportlab.pdfgen import canvas
 
-
-
 def generate_pdf(text: str, filename: str):
 
     path = f"generated/{filename}.pdf"
 
     c = canvas.Canvas(path, pagesize=A4)
-
-
 
     y = 800
 
@@ -210,13 +170,9 @@ def generate_pdf(text: str, filename: str):
 
             y = 800
 
-
-
     c.save()
 
     return path
-
-
 
 def strip_html(text: str) -> str:
 
@@ -229,8 +185,6 @@ def strip_html(text: str) -> str:
     text = re.sub(r"<[^>]*>", "", text)
 
     return text.strip()
-
-
 
 def clean_document_content(text: str) -> str:
 
@@ -268,15 +222,73 @@ def clean_document_content(text: str) -> str:
 
         cleaned.append(line)
 
-    # Collapse multiple empty lines
+    out = "
 
-    out = "\n".join(cleaned)
+".join(cleaned)
 
-    out = re.sub(r"\n{3,}", "\n\n", out).strip()
+    out = re.sub(r"
+
+{3,}", "
+
+", out).strip()
 
     return out
 
+def dedupe_document_content(text: str) -> str:
 
+    """Remove consecutive duplicate paragraphs/lines to avoid repeated content."""
+
+    if not text:
+
+        return ""
+
+    lines = [l.rstrip() for l in text.splitlines()]
+
+    paragraphs = []
+
+    buf = []
+
+    for line in lines:
+
+        if line.strip() == "":
+
+            if buf:
+
+                paragraphs.append("
+
+".join(buf))
+
+                buf = []
+
+        else:
+
+            buf.append(line)
+
+    if buf:
+
+        paragraphs.append("
+
+".join(buf))
+
+    deduped = []
+
+    prev_norm = None
+
+    for p in paragraphs:
+
+        norm = " ".join(p.split()).strip().lower()
+
+        if prev_norm is not None and norm == prev_norm:
+
+            continue
+
+        deduped.append(p)
+
+        prev_norm = norm
+
+    return "
+
+".join(deduped).strip()
 
 def detect_file_type(message: str) -> str:
 
@@ -296,8 +308,6 @@ def detect_file_type(message: str) -> str:
 
     return "pdf"
 
-
-
 DATABASE_URL = os.getenv(
 
     "DATABASE_URL",
@@ -306,21 +316,15 @@ DATABASE_URL = os.getenv(
 
 )
 
-
-
 engine = create_engine(DATABASE_URL, echo=False, future=True)
 
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 Base = declarative_base()
 
-
-
 class ChatMessage(Base):
 
     __tablename__ = "chat_messages"
-
-
 
     id = Column(Integer, primary_key=True)
 
@@ -332,11 +336,7 @@ class ChatMessage(Base):
 
     created_at = Column(DateTime, default=dt.utcnow)
 
-
-
 Base.metadata.create_all(engine)
-
-
 
 def db_add_message(user_id: str, role: str, content: str):
 
@@ -359,8 +359,6 @@ def db_add_message(user_id: str, role: str, content: str):
     finally:
 
         db.close()
-
-
 
 def db_get_history(user_id: str, limit: int = 20):
 
@@ -388,10 +386,6 @@ def db_get_history(user_id: str, limit: int = 20):
 
         db.close()
 
-    
-
-
-
 app = Flask(__name__)
 
 CORS(app)
@@ -406,17 +400,11 @@ def generate_file():
 
     file_type = data.get("file_type")  # excel | word | pdf
 
-
-
     if (not content) or (file_type not in ["excel", "word", "pdf"]):
 
         return jsonify({"success": False, "error": "Invalid request"}), 400
 
-
-
     name = f"report_{int(datetime.now().timestamp())}"
-
-
 
     if file_type == "excel":
 
@@ -430,8 +418,6 @@ def generate_file():
 
         path = generate_pdf(content, name)
 
-
-
     return jsonify({
 
         "success": True,
@@ -440,33 +426,23 @@ def generate_file():
 
     })
 
-
-
-
-
 @app.route("/api/download/<filename>", methods=["GET"])
 
 def download_file(filename):
 
     return send_from_directory("generated", filename, as_attachment=True)
 
-
-
 # API keys (set via environment variables)
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_API_KEY =os.getenv("OPENAI_API_KEY")
 
-OPENAI_MODEL = os.getenv("OPENAI_MODEL")
+OPENAI_MODEL=os.getenv("OPENAI_MODEL")
 
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
-
-
 
 # OpenAI initialization
 
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
-
-
 
 # Simple users database (for MVP)
 
@@ -478,13 +454,9 @@ USERS = {
 
 }
 
-
-
 # Chat history for each user
 
 chat_histories = {}
-
-
 
 # Web search via Tavily
 
@@ -514,13 +486,9 @@ def web_search(query):
 
         }
 
-        
-
         response = requests.post(url, json=payload)
 
         data = response.json()
-
-        
 
         # Build results
 
@@ -531,8 +499,6 @@ def web_search(query):
             "sources": []
 
         }
-
-        
 
         for result in data.get("results", []):
 
@@ -546,8 +512,6 @@ def web_search(query):
 
             })
 
-        
-
         return results
 
     except Exception as e:
@@ -555,8 +519,6 @@ def web_search(query):
         print(f"Search error: {e}")
 
         return {"answer": "", "sources": []}
-
-
 
 # Read PDF
 
@@ -582,8 +544,6 @@ def extract_pdf_text(file_bytes):
 
         return f"PDF reading error: {str(e)}"
 
-
-
 # Read DOCX
 
 def extract_docx_text(file_bytes):
@@ -604,8 +564,6 @@ def extract_docx_text(file_bytes):
 
         return f"DOCX reading error: {str(e)}"
 
-
-
 # Chat with AI
 
 def chat_with_ai(message, system_prompt, conversation_history=None, search_context=None):
@@ -619,8 +577,6 @@ def chat_with_ai(message, system_prompt, conversation_history=None, search_conte
             return "OpenAI API key is not configured. Please set OPENAI_API_KEY."
 
         messages = []
-
-        
 
         # System prompt
 
@@ -642,21 +598,11 @@ def chat_with_ai(message, system_prompt, conversation_history=None, search_conte
 
         )
 
-
-
-
-
-        
-
         if search_context:
 
             full_system_prompt += f"\n\nContext from the web:\n{search_context}"
 
-        
-
         messages.append({"role": "system", "content": full_system_prompt})
-
-        
 
         # Conversation history
 
@@ -664,13 +610,9 @@ def chat_with_ai(message, system_prompt, conversation_history=None, search_conte
 
             messages.extend(conversation_history[-10:])  # last 10 messages
 
-        
-
         # Current message
 
         messages.append({"role": "user", "content": message})
-
-        
 
         # Request to Groq
 
@@ -688,19 +630,13 @@ def chat_with_ai(message, system_prompt, conversation_history=None, search_conte
 
         )
 
-        
-
         return response.choices[0].message.content
-
-    
 
     except Exception as e:
 
         print(f"AI Error: {e}")
 
         return f"An error occurred while processing the request: {str(e)}"
-
-
 
 # Detect user intent
 
@@ -709,8 +645,6 @@ def detect_intent(message):
     """Detect what the user wants"""
 
     message_lower = (message or "").lower()
-
-    
 
     # Does it need web search?
 
@@ -727,8 +661,6 @@ def detect_intent(message):
     ]
 
     needs_search = any(keyword in message_lower for keyword in search_keywords)
-
-    
 
     # Does it need document generation?
 
@@ -764,15 +696,11 @@ def detect_intent(message):
 
     )
 
-    
-
     # Document analysis?
 
     analyze_keywords = ['analyze', 'check', 'evaluate', 'review', 'study', 'анализ', 'проверь', 'оцен', 'разбор']
 
     needs_analysis = any(keyword in message_lower for keyword in analyze_keywords)
-
-    
 
     return {
 
@@ -784,11 +712,7 @@ def detect_intent(message):
 
     }
 
-
-
 # === API ENDPOINTS ===
-
-
 
 @app.route('/api/auth', methods=['POST'])
 
@@ -801,8 +725,6 @@ def authenticate():
     username = data.get('username', '')
 
     password = data.get('password', '')
-
-    
 
     if username in USERS and USERS[username] == password:
 
@@ -830,8 +752,6 @@ def authenticate():
 
         }), 401
 
-
-
 @app.route('/api/chat', methods=['POST'])
 
 def chat():
@@ -848,11 +768,7 @@ def chat():
 
         is_guest = data.get('is_guest', True)
 
-        
-
         intent = detect_intent(message)
-
-
 
         # Guest mode check
 
@@ -896,27 +812,17 @@ def chat():
 
 - Advanced features
 
-
-
 Use context from previous messages when relevant.
 
-
-
 Use context from previous messages when relevant."""
-
-            
 
             conversation_history = db_get_history(user_id, limit=10)
 
             response = chat_with_ai(message, system_prompt, conversation_history)
 
-
-
             db_add_message(user_id, "user", message)
 
             db_add_message(user_id, "assistant", response)
-
-            
 
             return jsonify({
 
@@ -930,8 +836,6 @@ Use context from previous messages when relevant."""
 
             })
 
-
-
         # Full functionality for authenticated users
 
         # Load history
@@ -940,19 +844,13 @@ Use context from previous messages when relevant."""
 
             chat_histories[user_id] = []
 
-        
-
         conversation_history = db_get_history(user_id, limit=20)
-
-        
 
         # Web search if needed
 
         search_context = None
 
         search_results = None
-
-        
 
         if intent['needs_search']:
 
@@ -974,13 +872,9 @@ Use context from previous messages when relevant."""
 
                 search_results = search_data
 
-        
-
         # System prompt
 
         system_prompt = """You are Stratex AI, a professional business assistant.
-
-
 
 Your specializations:
 
@@ -991,8 +885,6 @@ Your specializations:
 💼 Business communication (emails, proposals)
 
 📈 Strategic planning
-
-
 
 Working principles:
 
@@ -1006,8 +898,6 @@ Working principles:
 
 5. Use context from previous messages when relevant
 
-
-
 Table formatting:
 
 For tabular data, use a simple pipe-separated table (plain text, no markdown styling):
@@ -1017,8 +907,6 @@ Header 1 | Header 2
 --- | ---
 
 Row 1 | Row 2
-
-
 
 Document formats:
 
@@ -1032,17 +920,11 @@ If the user asks for a report/plan — FIRST ask for the format:
 
 - Presentation (slides)
 
-
-
 After answering — generate in the chosen format."""
-
-
 
         if intent['needs_search'] and not search_context:
 
             system_prompt += "\n\nImportant: If the user asks for up-to-date web info and no web context is provided, explicitly say that live web search is unavailable right now and ask to enable TAVILY_API_KEY."
-
-        
 
         # Generate response
 
@@ -1060,11 +942,9 @@ After answering — generate in the chosen format."""
 
         ai_response = markdown_to_html(ai_response)
 
+        # Auto-generate file only when explicitly requested by frontend
 
-
-        # Auto-generate file for document requests
-
-        if intent.get("needs_document"):
+        if intent.get("needs_document") and data.get("auto_generate") is True:
 
             try:
 
@@ -1072,9 +952,11 @@ After answering — generate in the chosen format."""
 
                 name = f"report_{int(datetime.now().timestamp())}"
 
-                content = clean_document_content(strip_html(ai_response))
+                content = dedupe_document_content(clean_document_content(strip_html(ai_response))).strip()
 
+                if len(content) < 50:
 
+                    raise ValueError("Generated content too short for document export")
 
                 if file_type == "excel":
 
@@ -1088,13 +970,9 @@ After answering — generate in the chosen format."""
 
                     path = generate_pdf(content, name)
 
-
-
                 base_url = request.host_url.rstrip("/")
 
                 download_url = f"{base_url}/api/download/{os.path.basename(path)}"
-
-
 
                 doc_label = {"word": "DOCX", "excel": "XLSX", "pdf": "PDF"}.get(file_type, "DOC")
 
@@ -1104,9 +982,9 @@ After answering — generate in the chosen format."""
 
                     f"Here is your {doc_label} document:<br>"
 
-                    f"<a href=\"{download_url}\" target=\"_blank\" "
+                    f"<a href="{download_url}" target="_blank" "
 
-                    f"rel=\"noopener\" style=\"color:#6f47eb;font-weight:600;\">"
+                    f"rel="noopener" style="color:#6f47eb;font-weight:600;">"
 
                     f"Download {link_label}</a>"
 
@@ -1116,17 +994,11 @@ After answering — generate in the chosen format."""
 
                 print(f"File generation error: {e}")
 
-
-
-        
-
         # Save to history
 
         db_add_message(user_id, "user", message)
 
         db_add_message(user_id, "assistant", ai_response)
-
-        
 
         response_data = {
 
@@ -1138,19 +1010,13 @@ After answering — generate in the chosen format."""
 
         }
 
-        
-
         # Add sources if search was used
 
         if search_results:
 
             response_data["sources"] = search_results["sources"]
 
-        
-
         return jsonify(response_data)
-
-    
 
     except Exception as e:
 
@@ -1163,8 +1029,6 @@ After answering — generate in the chosen format."""
             "error": str(e)
 
         }), 500
-
-
 
 @app.route('/api/analyze-document', methods=['POST'])
 
@@ -1180,8 +1044,6 @@ def analyze_document():
 
         is_guest = request.form.get('is_guest', 'true') == 'true'
 
-        
-
         if is_guest:
 
             return jsonify({
@@ -1194,27 +1056,19 @@ def analyze_document():
 
             }), 403
 
-        
-
         # Get file
 
         if 'file' not in request.files:
 
             return jsonify({"success": False, "error": "No file uploaded"}), 400
 
-        
-
         file = request.files['file']
 
         filename = file.filename
 
-        
-
         # Read content
 
         file_bytes = file.read()
-
-        
 
         if filename.endswith('.pdf'):
 
@@ -1232,13 +1086,9 @@ def analyze_document():
 
             return jsonify({"success": False, "error": "Unsupported format"}), 400
 
-        
-
         # AI analysis
 
         system_prompt = """You are an expert in business document analysis.
-
-
 
 Analyze the document using these criteria:
 
@@ -1254,11 +1104,7 @@ Analyze the document using these criteria:
 
 6. **Recommendations** — concrete next steps
 
-
-
 Output format: structured with headings."""
-
-        
 
         analysis = chat_with_ai(
 
@@ -1267,8 +1113,6 @@ Output format: structured with headings."""
             system_prompt
 
         )
-
-        
 
         return jsonify({
 
@@ -1282,8 +1126,6 @@ Output format: structured with headings."""
 
         })
 
-    
-
     except Exception as e:
 
         print(f"Document analysis error: {e}")
@@ -1295,8 +1137,6 @@ Output format: structured with headings."""
             "error": str(e)
 
         }), 500
-
-
 
 @app.route('/api/market-analysis', methods=['POST'])
 
@@ -1312,8 +1152,6 @@ def market_analysis():
 
         is_guest = data.get('is_guest', True)
 
-        
-
         if is_guest:
 
             return jsonify({
@@ -1326,19 +1164,13 @@ def market_analysis():
 
             }), 403
 
-        
-
         # Web search
 
         search_results = web_search(query)
 
-        
-
         # AI analysis based on sources
 
         system_prompt = """You are a market analyst. Based on the information found, create:
-
-
 
 1. **Current situation** — what is happening now
 
@@ -1350,19 +1182,13 @@ def market_analysis():
 
 5. **Recommendations** — concrete actions
 
-
-
 Use data from the sources and include numbers when possible."""
-
-        
 
         context = f"Search results for '{query}':\n\n"
 
         for source in search_results.get('sources', []):
 
             context += f"- {source['title']}: {source['content']}\n"
-
-        
 
         analysis = chat_with_ai(
 
@@ -1373,8 +1199,6 @@ Use data from the sources and include numbers when possible."""
             search_context=context
 
         )
-
-        
 
         return jsonify({
 
@@ -1388,8 +1212,6 @@ Use data from the sources and include numbers when possible."""
 
         })
 
-    
-
     except Exception as e:
 
         print(f"Market analysis error: {e}")
@@ -1401,8 +1223,6 @@ Use data from the sources and include numbers when possible."""
             "error": str(e)
 
         }), 500
-
-
 
 @app.route('/api/generate-report', methods=['POST'])
 
@@ -1422,8 +1242,6 @@ def generate_report():
 
         is_guest = data.get('is_guest', True)
 
-        
-
         if is_guest:
 
             return jsonify({
@@ -1435,8 +1253,6 @@ def generate_report():
                 "require_auth": True
 
             }), 403
-
-        
 
         format_instructions = {
 
@@ -1450,15 +1266,9 @@ def generate_report():
 
         }
 
-        
-
         system_prompt = f"""You are an expert in business documentation.
 
-
-
 Create a {report_type} report in the following format: {format_instructions.get(format_type, 'standard')}
-
-
 
 Required elements:
 
@@ -1472,11 +1282,7 @@ Required elements:
 
 - Recommendations
 
-
-
 Parameters: {json.dumps(parameters, ensure_ascii=False)}"""
-
-        
 
         report = chat_with_ai(
 
@@ -1485,8 +1291,6 @@ Parameters: {json.dumps(parameters, ensure_ascii=False)}"""
             system_prompt
 
         )
-
-        
 
         return jsonify({
 
@@ -1500,8 +1304,6 @@ Parameters: {json.dumps(parameters, ensure_ascii=False)}"""
 
         })
 
-    
-
     except Exception as e:
 
         print(f"Report generation error: {e}")
@@ -1513,8 +1315,6 @@ Parameters: {json.dumps(parameters, ensure_ascii=False)}"""
             "error": str(e)
 
         }), 500
-
-
 
 @app.route('/api/status', methods=['GET'])
 
@@ -1536,13 +1336,11 @@ def status():
 
     })
 
-
-
 if __name__ == '__main__':
 
     print("🚀 Stratex AI Backend started!")
 
-    print("📡 Open AI API: connected")
+    print("📡 OpenAI API: connected")
 
     print("🔍 Tavily Search: connected")
 
@@ -1554,9 +1352,5 @@ if __name__ == '__main__':
 
     print("   business / business2024 (full)")
 
-    
-
     app.run(debug=True, port=5000, host='0.0.0.0')
-
-
 
