@@ -120,9 +120,17 @@ def clean_document_content(text: str) -> str:
         l = line.lower()
         if l.startswith("download ") or "download the pdf" in l or "download the docx" in l or "download the word" in l:
             continue
+        if l.startswith("скачать ") or "скачать pdf" in l or "скачать docx" in l or "скачать word" in l or "скачать excel" in l:
+            continue
         if l.startswith("here is") and ("format" in l or "document" in l or "pdf" in l or "docx" in l or "word" in l):
             continue
         if l.startswith("here is the") and ("format" in l or "document" in l or "pdf" in l or "docx" in l or "word" in l):
+            continue
+        if l.startswith("вот") and ("документ" in l or "pdf" in l or "docx" in l or "word" in l or "excel" in l):
+            continue
+        if l.startswith("ваш документ") or "документ готов" in l:
+            continue
+        if "ссылка" in l and ("документ" in l or "скачать" in l):
             continue
         cleaned.append(line)
     out = "\n".join(cleaned)
@@ -547,11 +555,18 @@ After answering ? generate in the chosen format."""
                 download_url = f"{base_url}/api/download/{os.path.basename(path)}"
                 doc_label = {"word": "DOCX", "excel": "XLSX", "pdf": "PDF"}.get(file_type, "DOC")
                 link_label = {"word": "WORD", "excel": "EXCEL", "pdf": "PDF"}.get(file_type, "DOC")
+                lang = detect_language(message)
+                if lang == "ru":
+                    title = f"Ваш документ {doc_label} готов:"
+                    link_text = f"Скачать {link_label}"
+                else:
+                    title = f"Here is your {doc_label} document:"
+                    link_text = f"Download {link_label}"
                 ai_response = (
-                    f"Here is your {doc_label} document:<br>"
+                    f"{title}<br>"
                     f"<a href=\"{download_url}\" target=\"_blank\" "
                     f"rel=\"noopener\" style=\"color:#6f47eb;font-weight:600;\">"
-                    f"Download {link_label}</a>"
+                    f"{link_text}</a>"
                 )
             except Exception as e:
                 print(f"File generation error: {e}")
