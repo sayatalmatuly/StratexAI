@@ -328,8 +328,13 @@ def chat_with_ai(message, system_prompt, conversation_history=None, search_conte
             "- Allowed tags: <strong>, <em>, <u>, <br>, <p>, <ul>, <li>, <h3>\n"
             "- Do NOT wrap everything in tags.\n"
         )
-        if search_context:
-            full_system_prompt += f"\n\nContext from the web:\n{search_context}"
+        if search_context:
+            full_system_prompt += (
+                "\n\nContext from the web:\n"
+                f"{search_context}\n\n"
+                "Hard rule: Use ONLY the web context above. Do NOT add facts not present there. "
+                "If the context is insufficient, say so and ask to уточнить запрос."
+            )
         messages.append({"role": "system", "content": full_system_prompt})
         if conversation_history:
             messages.extend(conversation_history[-10:])
