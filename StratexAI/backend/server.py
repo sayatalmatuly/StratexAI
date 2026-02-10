@@ -541,8 +541,9 @@ After answering ? generate in the chosen format."""
                 file_type = detect_file_type(message)
                 name = f"report_{int(datetime.now().timestamp())}"
                 doc_prompt = (
-                    "Create a complete, well-structured document based on the user's request. "
-                    "Do not add any prefaces, links, or download instructions. "
+                    "Write the full document content as plain text based on the user's request. "
+                    "Do not mention files, formats, or that you cannot create documents. "
+                    "Do not add prefaces, links, or download instructions. "
                     "Output only the document content."
                 )
                 doc_text = chat_with_ai(message, doc_prompt, conversation_history)
