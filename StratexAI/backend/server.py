@@ -34,36 +34,9 @@ from reportlab.lib.pagesizes import A4
 
 from reportlab.pdfgen import canvas
 
-from reportlab.pdfbase import pdfmetrics
-
-from reportlab.pdfbase.ttfonts import TTFont
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 GENERATED_DIR = os.path.join(BASE_DIR, "generated")
-
-DEFAULT_PDF_FONT = "Helvetica"
-
-UNICODE_PDF_FONT = "DejaVuSans"
-
-DEJAVU_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-
-
-def get_pdf_font_name() -> str:
-
-    if os.path.exists(DEJAVU_PATH):
-
-        try:
-
-            pdfmetrics.registerFont(TTFont(UNICODE_PDF_FONT, DEJAVU_PATH))
-
-            return UNICODE_PDF_FONT
-
-        except Exception:
-
-            return DEFAULT_PDF_FONT
-
-    return DEFAULT_PDF_FONT
 
 os.makedirs(GENERATED_DIR, exist_ok=True)
 
@@ -228,8 +201,6 @@ def generate_pdf(text: str, filename: str):
     path = os.path.join(GENERATED_DIR, f"{filename}.pdf")
 
     c = canvas.Canvas(path, pagesize=A4)
-
-    c.setFont(get_pdf_font_name(), 11)
 
     y = 800
 
@@ -397,60 +368,6 @@ def explicit_file_request(message: str) -> bool:
 
     return any(k in m for k in keywords)
 
-DOCUMENT_REFUSAL_MARKERS = [
-
-    "i can't", "i cannot", "can't create", "cannot create", "unable to create",
-
-    "as an ai", "i do not have the ability", "i'm unable",
-
-    "я не могу", "не могу создать", "не умею создавать", "не имею возможности",
-
-    "как ии", "как ai"
-
-]
-
-def looks_like_document_refusal(text: str) -> bool:
-
-    t = (text or "").lower()
-
-    return any(marker in t for marker in DOCUMENT_REFUSAL_MARKERS)
-
-def build_document_prompt(file_type: str, lang: str) -> str:
-
-    if lang == "ru":
-
-        prompt = (
-
-            "Напиши только содержание документа по запросу пользователя. "
-
-            "Никогда не упоминай ограничения создания файлов, возможности ИИ, форматы, ссылки или скачивание. "
-
-            "Без префейсинга и объяснений — только итоговый контент."
-
-        )
-
-        if file_type == "excel":
-
-            prompt += " Для Excel: каждая строка — новая строка текста, столбцы разделяй TAB, без markdown-таблиц и маркеров."
-
-        return prompt
-
-    prompt = (
-
-        "Write only the document content requested by the user. "
-
-        "Never mention file creation limits, AI limitations, formats, links, or downloads. "
-
-        "Do not add prefaces. Do not explain. Output only final content."
-
-    )
-
-    if file_type == "excel":
-
-        prompt += " Format as spreadsheet-ready rows. Each row must be on a new line and columns must be TAB-separated. No markdown tables or bullet symbols."
-
-    return prompt
-
 DATABASE_URL = os.getenv(
 
     "DATABASE_URL",
@@ -591,7 +508,7 @@ def download_file(filename):
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL")
 
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
 
@@ -1179,49 +1096,903 @@ Use context from previous messages when relevant."""
                     content = source.get("content", "")
                     search_context += f"- {title} ({url}): {content}\n"
                 search_results = search_data
-        system_prompt = """You are Stratex AI — Smart Business Automation assistant by Team Synapse.
+        system_prompt = """You are Stratex AI, a professional business assistant.
 
-Mission:
-Help B2B companies communicate faster, automate routine work, and make better business decisions.
 
-Core capabilities you should actively support:
-1) Instant client communication
-- Answer quickly and clearly.
-- Keep replies practical and easy to understand.
 
-2) Lead qualification support
-- Ask short clarifying questions when needed.
-- Identify lead quality signals (budget, timeline, authority, need, urgency).
 
-3) Sales/workflow support
-- Guide users to next best steps in sales and customer communication.
-- Suggest CRM-friendly structure (fields, status updates, follow-ups).
 
-4) Business content generation
-- Create reports, plans, proposals, emails, and summaries.
-- When useful, include KPIs, timelines, and action items.
 
-5) Market and trend insights
-- If web search context is available, use it to provide current insights.
-- If not available, say it simply and continue with best-effort strategic guidance.
 
-6) Automation mindset
-- Reduce repetitive tasks by giving reusable templates, checklists, and workflows.
 
-Style rules (important):
-- Use plain, simple business language.
-- Avoid legalistic, bureaucratic, or overly formal wording.
-- Be concise but complete.
-- Prefer short paragraphs and bullet points.
-- Focus on practical execution, not theory.
 
-Formatting rules:
-- Use headings and lists when it helps readability.
-- For tabular data, output plain text rows using pipe-separated columns.
 
-Document flow:
-- If user asks for a report/plan but does not specify format, ask which format they want (PDF, Word, Excel).
-- After answering, generate content in the chosen format."""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Your specializations:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+?? Market and trend analysis (with web search)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+?? Report, plan, and document generation
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+?? Business communication (emails, proposals)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+?? Strategic planning
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Working principles:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1. Structured output ? use headings, lists, and tables
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2. Measurable ? provide concrete KPIs, timelines, numbers
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+3. Professional ? business tone
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+4. Practical ? focus on execution
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+5. Use context from previous messages when relevant
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Table formatting:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+For tabular data, use a simple pipe-separated table (plain text, no markdown styling):
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Header 1 | Header 2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--- | ---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Row 1 | Row 2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Document formats:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+If the user asks for a report/plan ? FIRST ask for the format:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+- Brief (1 page)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+- Standard (2?3 pages)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+- Detailed (5+ pages)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+- Presentation (slides)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+After answering ? generate in the chosen format."""
 
         if use_web and not search_context:
             system_prompt += "\n\nImportant: If the user asks for up-to-date web info and no web context is provided, explicitly say that live web search is unavailable right now and ask to enable TAVILY_API_KEY."
@@ -1237,21 +2008,21 @@ Document flow:
 
                 name = f"report_{int(datetime.now().timestamp())}"
 
-                lang = detect_language(message)
+                doc_prompt = (
 
-                doc_prompt = build_document_prompt(file_type, lang)
+                    "Write the full document content as plain text based on the user's request. "
+
+                    "Do not mention files, formats, or that you cannot create documents. "
+
+                    "Do not add prefaces, links, or download instructions. "
+
+                    "Output only the document content."
+
+                )
 
                 doc_text = chat_with_ai(message, doc_prompt, conversation_history)
 
                 content = dedupe_document_content(clean_document_content(strip_html(doc_text))).strip()
-
-                if looks_like_document_refusal(doc_text) or len(content) < 50:
-
-                    retry_prompt = build_document_prompt(file_type, lang) + " Regenerate now and strictly follow all rules."
-
-                    retry_text = chat_with_ai(message, retry_prompt, conversation_history)
-
-                    content = dedupe_document_content(clean_document_content(strip_html(retry_text))).strip()
 
                 if len(content) < 50:
 
@@ -1280,6 +2051,8 @@ Document flow:
                 doc_label = {"word": "DOCX", "excel": "XLSX", "pdf": "PDF"}.get(file_type, "DOC")
 
                 link_label = {"word": "WORD", "excel": "EXCEL", "pdf": "PDF"}.get(file_type, "DOC")
+
+                lang = detect_language(message)
 
                 if lang == "ru":
 
