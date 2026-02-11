@@ -21,6 +21,7 @@ import re
 import io
 
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
+from sqlalchemy.exc import SQLAlchemyError
 
 from sqlalchemy.orm import declarative_base, sessionmaker
 
@@ -376,9 +377,9 @@ DATABASE_URL = os.getenv(
 
 )
 
-engine = create_engine(DATABASE_URL, echo=False, future=True)
+engine = None
 
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+SessionLocal = None
 
 Base = declarative_base()
 
@@ -396,9 +397,60 @@ class ChatMessage(Base):
 
     created_at = Column(DateTime, default=dt.utcnow)
 
-Base.metadata.create_all(engine)
+def init_database():
+
+    global engine, SessionLocal
+
+    if engine is not None and SessionLocal is not None:
+
+        return True
+
+    try:
+
+        connect_args = {}
+
+        if DATABASE_URL.startswith("postgresql"):
+
+            connect_args["connect_timeout"] = 3
+
+        engine = create_engine(
+
+            DATABASE_URL,
+
+            echo=False,
+
+            future=True,
+
+            pool_pre_ping=True,
+
+            connect_args=connect_args
+
+        )
+
+        SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+        Base.metadata.create_all(engine)
+
+        return True
+
+    except SQLAlchemyError as e:
+
+        print(f"[database] initialization failed, continuing without DB: {e}")
+
+        engine = None
+
+        SessionLocal = None
+
+        return False
+
+
+init_database()
 
 def db_add_message(user_id: str, role: str, content: str):
+
+    if SessionLocal is None and not init_database():
+
+        return
 
     db = SessionLocal()
 
@@ -408,11 +460,19 @@ def db_add_message(user_id: str, role: str, content: str):
 
         db.commit()
 
+    except SQLAlchemyError as e:
+
+        print(f"[database] write failed, skipping message persistence: {e}")
+
     finally:
 
         db.close()
 
 def db_get_history(user_id: str, limit: int = 20):
+
+    if SessionLocal is None and not init_database():
+
+        return []
 
     db = SessionLocal()
 
@@ -433,6 +493,12 @@ def db_get_history(user_id: str, limit: int = 20):
         rows = rows[-limit:]
 
         return [{"role": r.role, "content": r.content} for r in rows]
+
+    except SQLAlchemyError as e:
+
+        print(f"[database] read failed, returning empty history: {e}")
+
+        return []
 
     finally:
 
