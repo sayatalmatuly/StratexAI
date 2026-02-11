@@ -34,6 +34,8 @@ from openpyxl.styles import Font
 from reportlab.lib.pagesizes import A4
 
 from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -199,23 +201,122 @@ def generate_word(text: str, filename: str):
 
 def generate_pdf(text: str, filename: str):
 
+    def register_pdf_font() -> str:
+
+        candidates = [
+
+            os.path.join(BASE_DIR, "fonts", "DejaVuSans.ttf"),
+
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+
+            "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+
+            "/Library/Fonts/Arial Unicode.ttf",
+
+            "C:/Windows/Fonts/arial.ttf",
+
+        ]
+
+        for font_path in candidates:
+
+            if os.path.exists(font_path):
+
+                try:
+
+                    pdfmetrics.registerFont(TTFont("StratexUnicode", font_path))
+
+                    return "StratexUnicode"
+
+                except Exception:
+
+                    continue
+
+        return "Helvetica"
+
+    def clean_pdf_text(value: str) -> str:
+
+        return "".join(ch for ch in (value or "") if ch in "\t\n\r" or ord(ch) >= 32)
+
+    def wrap_line(value: str, font_name: str, font_size: int, max_width: float):
+
+        value = clean_pdf_text(value)
+
+        if not value.strip():
+
+            return [""]
+
+        words = value.split()
+
+        if not words:
+
+            return [""]
+
+        wrapped = []
+
+        current = words[0]
+
+        for word in words[1:]:
+
+            candidate = f"{current} {word}"
+
+            if pdfmetrics.stringWidth(candidate, font_name, font_size) <= max_width:
+
+                current = candidate
+
+            else:
+
+                wrapped.append(current)
+
+                current = word
+
+        wrapped.append(current)
+
+        return wrapped
+
     path = os.path.join(GENERATED_DIR, f"{filename}.pdf")
 
     c = canvas.Canvas(path, pagesize=A4)
 
-    y = 800
+    font_name = register_pdf_font()
 
-    for line in text.split("\n"):
+    font_size = 11
 
-        c.drawString(40, y, line[:100])
+    c.setFont(font_name, font_size)
 
-        y -= 14
+    page_width, page_height = A4
 
-        if y < 40:
+    left_margin = 40
 
-            c.showPage()
+    right_margin = 40
 
-            y = 800
+    top_margin = 40
+
+    bottom_margin = 40
+
+    line_height = 14
+
+    max_width = page_width - left_margin - right_margin
+
+    y = page_height - top_margin
+
+    for raw_line in text.split("\n"):
+
+        lines = wrap_line(raw_line, font_name, font_size, max_width)
+
+        for line in lines:
+
+            if y <= bottom_margin:
+
+                c.showPage()
+
+                c.setFont(font_name, font_size)
+
+                y = page_height - top_margin
+
+            c.drawString(left_margin, y, line)
+
+            y -= line_height
+
 
     c.save()
 
