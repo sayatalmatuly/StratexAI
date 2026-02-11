@@ -34,9 +34,36 @@ from reportlab.lib.pagesizes import A4
 
 from reportlab.pdfgen import canvas
 
+from reportlab.pdfbase import pdfmetrics
+
+from reportlab.pdfbase.ttfonts import TTFont
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 GENERATED_DIR = os.path.join(BASE_DIR, "generated")
+
+DEFAULT_PDF_FONT = "Helvetica"
+
+UNICODE_PDF_FONT = "DejaVuSans"
+
+DEJAVU_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+
+
+def get_pdf_font_name() -> str:
+
+    if os.path.exists(DEJAVU_PATH):
+
+        try:
+
+            pdfmetrics.registerFont(TTFont(UNICODE_PDF_FONT, DEJAVU_PATH))
+
+            return UNICODE_PDF_FONT
+
+        except Exception:
+
+            return DEFAULT_PDF_FONT
+
+    return DEFAULT_PDF_FONT
 
 os.makedirs(GENERATED_DIR, exist_ok=True)
 
@@ -201,6 +228,8 @@ def generate_pdf(text: str, filename: str):
     path = os.path.join(GENERATED_DIR, f"{filename}.pdf")
 
     c = canvas.Canvas(path, pagesize=A4)
+
+    c.setFont(get_pdf_font_name(), 11)
 
     y = 800
 
@@ -367,6 +396,60 @@ def explicit_file_request(message: str) -> bool:
     ]
 
     return any(k in m for k in keywords)
+
+DOCUMENT_REFUSAL_MARKERS = [
+
+    "i can't", "i cannot", "can't create", "cannot create", "unable to create",
+
+    "as an ai", "i do not have the ability", "i'm unable",
+
+    "я не могу", "не могу создать", "не умею создавать", "не имею возможности",
+
+    "как ии", "как ai"
+
+]
+
+def looks_like_document_refusal(text: str) -> bool:
+
+    t = (text or "").lower()
+
+    return any(marker in t for marker in DOCUMENT_REFUSAL_MARKERS)
+
+def build_document_prompt(file_type: str, lang: str) -> str:
+
+    if lang == "ru":
+
+        prompt = (
+
+            "Напиши только содержание документа по запросу пользователя. "
+
+            "Никогда не упоминай ограничения создания файлов, возможности ИИ, форматы, ссылки или скачивание. "
+
+            "Без префейсинга и объяснений — только итоговый контент."
+
+        )
+
+        if file_type == "excel":
+
+            prompt += " Для Excel: каждая строка — новая строка текста, столбцы разделяй TAB, без markdown-таблиц и маркеров."
+
+        return prompt
+
+    prompt = (
+
+        "Write only the document content requested by the user. "
+
+        "Never mention file creation limits, AI limitations, formats, links, or downloads. "
+
+        "Do not add prefaces. Do not explain. Output only final content."
+
+    )
+
+    if file_type == "excel":
+
+        prompt += " Format as spreadsheet-ready rows. Each row must be on a new line and columns must be TAB-separated. No markdown tables or bullet symbols."
+
+    return prompt
 
 DATABASE_URL = os.getenv(
 
@@ -2008,21 +2091,21 @@ After answering ? generate in the chosen format."""
 
                 name = f"report_{int(datetime.now().timestamp())}"
 
-                doc_prompt = (
+                lang = detect_language(message)
 
-                    "Write the full document content as plain text based on the user's request. "
-
-                    "Do not mention files, formats, or that you cannot create documents. "
-
-                    "Do not add prefaces, links, or download instructions. "
-
-                    "Output only the document content."
-
-                )
+                doc_prompt = build_document_prompt(file_type, lang)
 
                 doc_text = chat_with_ai(message, doc_prompt, conversation_history)
 
                 content = dedupe_document_content(clean_document_content(strip_html(doc_text))).strip()
+
+                if looks_like_document_refusal(doc_text) or len(content) < 50:
+
+                    retry_prompt = build_document_prompt(file_type, lang) + " Regenerate now and strictly follow all rules."
+
+                    retry_text = chat_with_ai(message, retry_prompt, conversation_history)
+
+                    content = dedupe_document_content(clean_document_content(strip_html(retry_text))).strip()
 
                 if len(content) < 50:
 
@@ -2051,8 +2134,6 @@ After answering ? generate in the chosen format."""
                 doc_label = {"word": "DOCX", "excel": "XLSX", "pdf": "PDF"}.get(file_type, "DOC")
 
                 link_label = {"word": "WORD", "excel": "EXCEL", "pdf": "PDF"}.get(file_type, "DOC")
-
-                lang = detect_language(message)
 
                 if lang == "ru":
 
