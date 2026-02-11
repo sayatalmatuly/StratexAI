@@ -1,19 +1,19 @@
 :root {
-  --bg-dark: #030407;
-  --bg-panel: #0a0c14;
+  --bg-dark: #101112;
+  --bg-panel: #161819;
 
-  --primary: #7047eb;
-  --primary-glow: #8b5cf6;
-  --secondary: #06b6d4;
-  --accent-hot: #f43f5e;
+  --primary: #d1d5db;
+  --primary-glow: #9ca3af;
+  --secondary: #6b7280;
+  --accent-hot: #6b7280;
 
-  --text-main: #ffffff;
-  --text-muted: #94a3b8;
+  --text-main: #f3f4f6;
+  --text-muted: #a1a1aa;
 
-  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-bg: rgba(255, 255, 255, 0.02);
   --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-highlight: rgba(255, 255, 255, 0.15);
-  --blur-amt: 24px;
+  --glass-highlight: rgba(255, 255, 255, 0.06);
+  --blur-amt: 10px;
 
   --radius-sm: 12px;
   --radius-md: 20px;
@@ -43,15 +43,11 @@ body {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: radial-gradient(circle at 50% 0%, #111425 0%, #030407 100%);
+  background: linear-gradient(180deg, #131516 0%, #101112 100%);
 }
 
 .aurora-blob {
-  position: absolute;
-  filter: blur(80px);
-  opacity: 0.4;
-  border-radius: 50%;
-  animation: float 20s infinite alternate ease-in-out;
+  display: none;
 }
 .a1 {
   width: 700px;
@@ -80,20 +76,11 @@ body {
 }
 
 .noise-overlay {
-  position: absolute;
-  inset: 0;
-  opacity: 0.03;
-  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-  pointer-events: none;
+  display: none;
 }
 
 .grid-overlay {
-  position: absolute;
-  inset: 0;
-  background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 60px 60px;
-  mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
+  display: none;
 }
 
 @keyframes float {
@@ -123,10 +110,7 @@ ul {
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, #fff 30%, var(--secondary) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--text-main);
   display: inline-block;
 }
 
@@ -135,16 +119,14 @@ ul {
   backdrop-filter: blur(var(--blur-amt));
   -webkit-backdrop-filter: blur(var(--blur-amt));
   border: 1px solid var(--glass-border);
-  border-top: 1px solid var(--glass-highlight);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-  border-radius: var(--radius-md);
-  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
+  border-radius: 14px;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .glass-panel:hover {
-  border-color: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(255, 255, 255, 0.02);
-  transform: translateY(-5px);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
 }
 
 .btn {
@@ -162,27 +144,18 @@ ul {
 }
 
 .btn--primary {
-  background: linear-gradient(135deg, var(--primary), #5b21b6);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 10px 20px -5px rgba(111, 71, 235, 0.4);
+  background: #e5e7eb;
+  color: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: none;
 }
 
 .btn--primary:hover {
-  box-shadow: 0 15px 30px -5px rgba(111, 71, 235, 0.6);
-  transform: translateY(-2px) scale(1.02);
+  background: #f3f4f6;
 }
 
 .btn--glowy::after {
-  content: "";
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transform: rotate(45deg) translate(-100%, -100%);
-  animation: shine 4s infinite;
+  display: none;
 }
 
 @keyframes shine {
@@ -242,11 +215,11 @@ ul {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  background: #2f3133;
   position: relative;
   display: grid;
   place-items: center;
-  box-shadow: 0 0 15px var(--primary);
+  box-shadow: none;
 }
 .brand__spark {
   width: 12px;
@@ -318,9 +291,9 @@ ul {
   gap: 8px;
   padding: 8px 16px;
   border-radius: 50px;
-  background: rgba(111, 71, 235, 0.15);
-  border: 1px solid rgba(111, 71, 235, 0.3);
-  color: #c4b5fd;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
   font-size: 13px;
   font-weight: 500;
   margin-bottom: 24px;
@@ -397,12 +370,12 @@ ul {
 }
 .device-card {
   padding: 20px;
-  border-radius: 24px;
-  background: linear-gradient(180deg, rgba(20, 20, 30, 0.8), rgba(10, 10, 15, 0.95));
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(29, 31, 33, 0.95), rgba(19, 20, 22, 0.98));
   position: relative;
   z-index: 2;
   transform-style: preserve-3d;
-  transform: rotateY(-5deg) rotateX(5deg);
+  transform: none;
 }
 
 .device__header {
@@ -558,7 +531,7 @@ ul {
   border-radius: 16px;
   min-width: 180px;
   z-index: 5;
-  animation: float 6s infinite ease-in-out;
+  animation: none;
 }
 .f1 {
   top: 20%;
@@ -656,22 +629,22 @@ ul {
   position: relative;
 }
 .price-card.popular {
-  border-color: var(--primary);
-  background: linear-gradient(180deg, rgba(111, 71, 235, 0.08), rgba(0, 0, 0, 0));
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.015);
 }
 .popular-tag {
   position: absolute;
   top: -12px;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--primary);
+  background: #2f3133;
   padding: 4px 12px;
   border-radius: 20px;
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  box-shadow: 0 4px 15px var(--primary);
+  box-shadow: none;
 }
 
 .price-header h3 {
@@ -707,7 +680,7 @@ ul {
   content: "✓";
   position: absolute;
   left: 0;
-  color: var(--secondary);
+  color: #9ca3af;
   font-weight: bold;
 }
 
@@ -766,13 +739,13 @@ ul {
   width: 260px;
   padding: 12px;
 
-  background: rgba(10, 12, 18, 0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(24, 26, 27, 0.98);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 
-  border-radius: 16px;
+  border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
 
   display: none;
   z-index: 999;
