@@ -34,9 +34,36 @@ from reportlab.lib.pagesizes import A4
 
 from reportlab.pdfgen import canvas
 
+from reportlab.pdfbase import pdfmetrics
+
+from reportlab.pdfbase.ttfonts import TTFont
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 GENERATED_DIR = os.path.join(BASE_DIR, "generated")
+
+DEFAULT_PDF_FONT = "Helvetica"
+
+UNICODE_PDF_FONT = "DejaVuSans"
+
+DEJAVU_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+
+
+def get_pdf_font_name() -> str:
+
+    if os.path.exists(DEJAVU_PATH):
+
+        try:
+
+            pdfmetrics.registerFont(TTFont(UNICODE_PDF_FONT, DEJAVU_PATH))
+
+            return UNICODE_PDF_FONT
+
+        except Exception:
+
+            return DEFAULT_PDF_FONT
+
+    return DEFAULT_PDF_FONT
 
 os.makedirs(GENERATED_DIR, exist_ok=True)
 
@@ -201,6 +228,8 @@ def generate_pdf(text: str, filename: str):
     path = os.path.join(GENERATED_DIR, f"{filename}.pdf")
 
     c = canvas.Canvas(path, pagesize=A4)
+
+    c.setFont(get_pdf_font_name(), 11)
 
     y = 800
 
