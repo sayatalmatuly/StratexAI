@@ -249,6 +249,15 @@ class ChatMessage(Base):
     role = Column(String)
     content = Column(Text)
     created_at = Column(DateTime, default=dt.utcnow)
+
+
+class KnowledgeChunk(Base):
+    __tablename__ = "knowledge_chunks"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(String, index=True)
+    source = Column(String, default="manual")
+    content = Column(Text)
+    created_at = Column(DateTime, default=dt.utcnow)
 def init_database():
     global engine, SessionLocal
     if engine is not None and SessionLocal is not None:
@@ -299,6 +308,84 @@ def db_get_history(user_id: str, limit: int = 20):
         return [{"role": r.role, "content": r.content} for r in rows]
     except SQLAlchemyError as e:
         print(f"[database] read failed, returning empty history: {e}")
+        return []
+    finally:
+        db.close()
+
+
+def tokenize_for_retrieval(text: str):
+    words = re.findall(r"[a-zA-Zа-яА-Я0-9_]+", (text or "").lower())
+    stopwords = {
+        "the", "a", "an", "and", "or", "to", "of", "in", "on", "for", "with", "is", "are",
+        "это", "как", "что", "для", "или", "при", "под", "над", "без", "про", "есть"
+    }
+    return {w for w in words if len(w) > 2 and w not in stopwords}
+
+
+def split_text_chunks(text: str, max_chars: int = 900, overlap: int = 150):
+    text = (text or "").strip()
+    if not text:
+        return []
+    chunks = []
+    start = 0
+    while start < len(text):
+        end = min(len(text), start + max_chars)
+        chunk = text[start:end].strip()
+        if chunk:
+            chunks.append(chunk)
+        if end >= len(text):
+            break
+        start = max(0, end - overlap)
+    return chunks
+
+
+def db_add_knowledge_chunks(user_id: str, source: str, text: str):
+    if SessionLocal is None and not init_database():
+        return 0
+    chunks = split_text_chunks(text)
+    if not chunks:
+        return 0
+    db = SessionLocal()
+    try:
+        for chunk in chunks:
+            db.add(KnowledgeChunk(user_id=user_id, source=source, content=chunk))
+        db.commit()
+        return len(chunks)
+    except SQLAlchemyError as e:
+        print(f"[database] rag write failed, skipping knowledge persistence: {e}")
+        return 0
+    finally:
+        db.close()
+
+
+def db_retrieve_knowledge(user_id: str, query: str, limit: int = 5):
+    if SessionLocal is None and not init_database():
+        return []
+    query_tokens = tokenize_for_retrieval(query)
+    if not query_tokens:
+        return []
+    db = SessionLocal()
+    try:
+        rows = (
+            db.query(KnowledgeChunk)
+            .filter(KnowledgeChunk.user_id == user_id)
+            .order_by(KnowledgeChunk.created_at.desc())
+            .limit(200)
+            .all()
+        )
+        ranked = []
+        for row in rows:
+            tokens = tokenize_for_retrieval(row.content)
+            if not tokens:
+                continue
+            score = len(query_tokens.intersection(tokens))
+            if score > 0:
+                ranked.append((score, row))
+        ranked.sort(key=lambda x: (-x[0], -x[1].id))
+        top_rows = [row for _, row in ranked[:limit]]
+        return [{"source": r.source, "content": r.content} for r in top_rows]
+    except SQLAlchemyError as e:
+        print(f"[database] rag read failed, returning empty context: {e}")
         return []
     finally:
         db.close()
@@ -504,6 +591,7 @@ def chat():
         is_guest = data.get('is_guest', True)
         intent = detect_intent(message)
         use_web = bool(data.get("use_web", False))
+        use_rag = bool(data.get("use_rag", False))
         if is_guest:
             if intent['needs_search'] or intent['needs_document'] or intent['needs_analysis']:
                 return jsonify({
@@ -536,6 +624,7 @@ Use context from previous messages when relevant."""
         conversation_history = db_get_history(user_id, limit=20)
         search_context = None
         search_results = None
+        rag_context = None
         if use_web:
             search_data = web_search(message)
             if search_data.get("error"):
@@ -557,6 +646,13 @@ Use context from previous messages when relevant."""
                     content = source.get("content", "")
                     search_context += f"- {title} ({url}): {content}\n"
                 search_results = search_data
+
+        if use_rag:
+            retrieved_chunks = db_retrieve_knowledge(user_id, message, limit=5)
+            if retrieved_chunks:
+                rag_context = "Context from your uploaded/internal documents:\n"
+                for i, chunk in enumerate(retrieved_chunks, 1):
+                    rag_context += f"[{i}] Source: {chunk['source']}\n{chunk['content']}\n\n"
         system_prompt = """You are Stratex AI, a professional business assistant.
 Your specializations:
 ?? Market and trend analysis (with web search)
@@ -583,7 +679,10 @@ If the user asks for a report/plan ? FIRST ask for the format:
 After answering ? generate in the chosen format."""
         if use_web and not search_context:
             system_prompt += "\n\nImportant: If the user asks for up-to-date web info and no web context is provided, explicitly say that live web search is unavailable right now and ask to enable TAVILY_API_KEY."
-        ai_response = chat_with_ai(message, system_prompt, conversation_history, search_context)
+        combined_context = search_context
+        if rag_context:
+            combined_context = (combined_context + "\n\n" if combined_context else "") + rag_context
+        ai_response = chat_with_ai(message, system_prompt, conversation_history, combined_context)
         ai_response = markdown_to_html(ai_response)
         if intent.get("needs_document") and explicit_file_request(message):
             try:
@@ -634,6 +733,7 @@ After answering ? generate in the chosen format."""
             "is_demo": False,
             "debug": {
                 "needs_search": bool(intent.get("needs_search")),
+                "rag_used": bool(rag_context),
                 "sources_count": len(search_results.get("sources", [])) if search_results else 0
             }
         }
@@ -646,6 +746,36 @@ After answering ? generate in the chosen format."""
             "success": False,
             "error": str(e)
         }), 500
+@app.route('/api/rag/ingest', methods=['POST'])
+def rag_ingest():
+    try:
+        data = request.get_json(silent=True) or {}
+        user_id = data.get('user_id', 'guest')
+        is_guest = data.get('is_guest', True)
+        source = data.get('source', 'manual')
+        text = data.get('text', '')
+        if is_guest:
+            return jsonify({
+                "success": False,
+                "message": "RAG ingestion is available only for authenticated users",
+                "require_auth": True
+            }), 403
+        if not text.strip():
+            return jsonify({"success": False, "error": "Text is required"}), 400
+        chunks_saved = db_add_knowledge_chunks(user_id, source, text)
+        return jsonify({
+            "success": True,
+            "chunks_saved": chunks_saved,
+            "source": source
+        })
+    except Exception as e:
+        print(f"RAG ingestion error: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
 @app.route('/api/analyze-document', methods=['POST'])
 def analyze_document():
     try:
@@ -687,7 +817,8 @@ Output format: structured with headings."""
             "success": True,
             "filename": filename,
             "analysis": analysis,
-            "document_length": len(text)
+            "document_length": len(text),
+            "rag_chunks_saved": db_add_knowledge_chunks(user_id, filename, text)
         })
     except Exception as e:
         print(f"Document analysis error: {e}")
