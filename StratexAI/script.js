@@ -23,6 +23,9 @@ function stripHtml(html) {
 
 const LS_CHATS = "stratex_chats_v2";
 const LS_ACTIVE = "stratex_active_chat_v2";
+const LS_WEB_SEARCH = "stratex_use_web_search_v1";
+
+let useWebSearch = false;
 
 function loadChats() {
   try {
@@ -546,11 +549,37 @@ function getServerUserIdForActiveChat() {
   return `${u}::${chatId}`; 
 }
 
+function restoreWebSearchPreference() {
+  try {
+    useWebSearch = localStorage.getItem(LS_WEB_SEARCH) === "1";
+  } catch {
+    useWebSearch = false;
+  }
+}
+
+function updateWebSearchUI() {
+  const btn = document.getElementById("web-search-btn");
+  if (!btn) return;
+  btn.textContent = useWebSearch ? "🌐 Web Search: On" : "🌐 Web Search: Off";
+  btn.classList.toggle("btn--primary", useWebSearch);
+  btn.classList.toggle("btn--glass", !useWebSearch);
+  btn.setAttribute("aria-pressed", useWebSearch ? "true" : "false");
+}
+
+function toggleWebSearch() {
+  useWebSearch = !useWebSearch;
+  try {
+    localStorage.setItem(LS_WEB_SEARCH, useWebSearch ? "1" : "0");
+  } catch {}
+  updateWebSearchUI();
+}
+
 async function apiChat(message) {
   const payload = {
     message,
     user_id: getServerUserIdForActiveChat(),
     is_guest: isGuest,
+    use_web: useWebSearch,
   };
 
   const r = await fetch(`${API_URL}/chat`, {
@@ -853,7 +882,9 @@ function logout() {
 document.addEventListener("DOMContentLoaded", () => {
 
   restoreAuth();
+  restoreWebSearchPreference();
   updateAuthUI();
+  updateWebSearchUI();
 
   ensureActiveChat();
   renderChatList();
@@ -885,6 +916,11 @@ document.addEventListener("DOMContentLoaded", () => {
     setActiveChatId(id);
     renderChatList();
     loadActiveChatMessagesIntoUI();
+  });
+
+  document.getElementById("web-search-btn")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    toggleWebSearch();
   });
 
   document.getElementById("login-btn")?.addEventListener("click", (e) => {
