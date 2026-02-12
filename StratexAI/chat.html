@@ -10,7 +10,12 @@
     <link rel="stylesheet" href="styles.css" />
 
     <style>
-      body { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+      body {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
       .chat-layout {
         flex: 1;
         display: grid;
@@ -27,9 +32,26 @@
       .messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; scrollbar-width: thin; }
 
       .composer { padding: 20px; border-top: 1px solid var(--glass-border); }
-      .chat-bubble { max-width: 80%; padding: 16px; border-radius: 18px; font-size: 15px; line-height: 1.5; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-      .chat-bubble.ai { background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border); border-bottom-left-radius: 4px; }
-      .chat-bubble.user { background: linear-gradient(135deg, var(--primary), #5b21b6); color: white; margin-left: auto; border-bottom-right-radius: 4px; box-shadow: 0 4px 15px rgba(111,71,235,0.3); }
+      .chat-bubble {
+        max-width: 80%;
+        padding: 16px;
+        border-radius: 18px;
+        font-size: 15px;
+        line-height: 1.5;
+        animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+      .chat-bubble.ai {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid var(--glass-border);
+        border-bottom-left-radius: 4px;
+      }
+      .chat-bubble.user {
+        background: #e5e7eb;
+        color: #111827;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        margin-left: auto;
+        border-bottom-right-radius: 4px;
+      }
 
       .input-box {
         width: 100%;
@@ -49,28 +71,19 @@
         position: absolute;
         right: 10px;
         bottom: 10px;
-        width: 42px;
+        min-width: 96px;
         height: 42px;
-        border-radius: 14px;
-        background: linear-gradient(135deg, var(--primary), #5b21b6);
-        border: 1px solid rgba(255,255,255,0.15);
-        display: grid;
-        place-items: center;
-        cursor: pointer;
-        transition: all .25s ease;
-        box-shadow: 0 8px 20px rgba(112,71,235,.4);
+        border-radius: 999px;
+        padding: 0 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
       }
       .send-btn::before{
-        content: "";
-        width: 10px;
-        height: 10px;
-        border-top: 2px solid white;
-        border-right: 2px solid white;
-        transform: rotate(-45deg);
-        margin-bottom: -2px;
+        content: "Send";
+        font-size: 14px;
+        font-weight: 600;
       }
-      .send-btn:hover{ transform: translateY(-2px); box-shadow: 0 12px 30px rgba(112,71,235,.6); }
-      .send-btn:active{ transform: scale(.95); }
 
       .prompt-card { padding: 15px; text-align: left; cursor: pointer; transition: 0.2s; }
       .prompt-card:hover { background: rgba(255,255,255,0.05); border-color: var(--primary); }
@@ -101,6 +114,21 @@
         padding: 8px 14px;
         font-size: 12px;
         border-radius: 999px;
+      }
+
+      .chat-nav {
+        position: sticky;
+      }
+
+      .chat-nav .nav__inner {
+        max-width: 100%;
+        padding: 0 30px;
+      }
+
+      .chat-nav-actions {
+        display:flex;
+        align-items:center;
+        gap:12px;
       }
 
       .sidebar-backdrop {
@@ -147,8 +175,8 @@
       <div class="noise-overlay"></div>
     </div>
 
-    <header class="nav" style="position: sticky;">
-      <div class="container nav__inner" style="max-width: 100%; padding: 0 30px;">
+    <header class="nav chat-nav">
+      <div class="container nav__inner">
         <a class="brand" href="index.html">
           <div class="brand__logo"><div class="brand__spark"></div></div>
           <span class="brand__text">Stratex</span>
@@ -158,7 +186,7 @@
           <span></span>
         </button>
 
-        <div class="nav__actions" style="display:flex; align-items:center; gap:12px;">
+        <div class="nav__actions chat-nav-actions">
           <button id="login-btn" class="btn btn--primary btn--sm" type="button">🔐 Login</button>
           <button id="export-btn" class="btn btn--glass btn--sm" type="button">Export</button>
           <button id="logout-btn" class="btn btn--glass btn--sm" type="button" style="display:none;">🚪 Log out</button>
@@ -209,7 +237,7 @@
           <form action="#" style="position: relative;">
             <textarea class="input-box" rows="2" placeholder="Describe your task... (Enter to send)"></textarea>
 
-            <button type="button" class="send-btn" aria-label="Send"></button>
+            <button type="button" class="btn btn--primary send-btn" aria-label="Send"></button>
 
             <input id="file-input" type="file" hidden multiple accept=".pdf,.docx,.txt,.png,.jpg,.jpeg,.webp" />
             <button id="attach-btn" type="button" class="btn btn--glass" style="position:absolute; left:10px; bottom:10px; padding:8px 12px; font-size:12px;">📎</button>
