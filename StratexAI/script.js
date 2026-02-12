@@ -12,6 +12,32 @@ const $$ = (sel) => [...document.querySelectorAll(sel)];
 
 let lastAiPlain = "";
 
+// Web search toggle state
+let webSearchEnabled = false;
+
+function loadWebSearchState() {
+  try {
+    const raw = localStorage.getItem("stratex_web_search_v1");
+    if (!raw) return false;
+    return raw === "1";
+  } catch {
+    return false;
+  }
+}
+
+function saveWebSearchState(enabled) {
+  try {
+    localStorage.setItem("stratex_web_search_v1", enabled ? "1" : "0");
+  } catch {}
+}
+
+function updateWebSearchButtonUI() {
+  const btn = document.getElementById("web-search-btn");
+  if (!btn) return;
+  btn.setAttribute("aria-pressed", webSearchEnabled ? "true" : "false");
+  btn.textContent = webSearchEnabled ? "🌐 Web Search: On" : "🌐 Web Search: Off";
+}
+
 function stripHtml(html) {
   return String(html || "")
     .replace(/<br\s*\/?>/gi, "\n")
@@ -23,9 +49,6 @@ function stripHtml(html) {
 
 const LS_CHATS = "stratex_chats_v2";
 const LS_ACTIVE = "stratex_active_chat_v2";
-const LS_WEB_SEARCH = "stratex_use_web_search_v1";
-
-let useWebSearch = false;
 
 function loadChats() {
   try {
@@ -52,6 +75,19 @@ function makeId() {
   return crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random();
 }
 
+function createEmptyChat() {
+  const now = Date.now();
+  return { id: makeId(), title: "New chat", createdAt: now, updatedAt: now, messages: [] };
+}
+
+function addNewChatAndActivate() {
+  const chats = loadChats();
+  const chat = createEmptyChat();
+  chats.push(chat);
+  saveChats(chats);
+  setActiveChatId(chat.id);
+}
+
 function clampTitle(t) {
   return (t || "").replace(/\s+/g, " ").trim().slice(0, 48);
 }
@@ -66,11 +102,7 @@ function ensureActiveChat() {
   const activeId = getActiveChatId();
   if (activeId && chats.some((c) => c.id === activeId)) return;
 
-  const id = makeId();
-  const now = Date.now();
-  chats.push({ id, title: "New chat", createdAt: now, updatedAt: now, messages: [] });
-  saveChats(chats);
-  setActiveChatId(id);
+  addNewChatAndActivate();
 }
 
 function getActiveChat() {
@@ -549,37 +581,12 @@ function getServerUserIdForActiveChat() {
   return `${u}::${chatId}`; 
 }
 
-function restoreWebSearchPreference() {
-  try {
-    useWebSearch = localStorage.getItem(LS_WEB_SEARCH) === "1";
-  } catch {
-    useWebSearch = false;
-  }
-}
-
-function updateWebSearchUI() {
-  const btn = document.getElementById("web-search-btn");
-  if (!btn) return;
-  btn.textContent = useWebSearch ? "🌐 Web Search: On" : "🌐 Web Search: Off";
-  btn.classList.toggle("btn--primary", useWebSearch);
-  btn.classList.toggle("btn--glass", !useWebSearch);
-  btn.setAttribute("aria-pressed", useWebSearch ? "true" : "false");
-}
-
-function toggleWebSearch() {
-  useWebSearch = !useWebSearch;
-  try {
-    localStorage.setItem(LS_WEB_SEARCH, useWebSearch ? "1" : "0");
-  } catch {}
-  updateWebSearchUI();
-}
-
 async function apiChat(message) {
   const payload = {
     message,
     user_id: getServerUserIdForActiveChat(),
     is_guest: isGuest,
-    use_web: useWebSearch,
+    force_web_search: webSearchEnabled,
   };
 
   const r = await fetch(`${API_URL}/chat`, {
@@ -880,11 +887,22 @@ function logout() {
 
 
 document.addEventListener("DOMContentLoaded", () => {
-
   restoreAuth();
-  restoreWebSearchPreference();
   updateAuthUI();
-  updateWebSearchUI();
+
+  // Web search toggle initial state
+  webSearchEnabled = loadWebSearchState();
+  updateWebSearchButtonUI();
+
+  const webSearchBtn = document.getElementById("web-search-btn");
+  if (webSearchBtn) {
+    webSearchBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      webSearchEnabled = !webSearchEnabled;
+      saveWebSearchState(webSearchEnabled);
+      updateWebSearchButtonUI();
+    });
+  }
 
   ensureActiveChat();
   renderChatList();
@@ -908,19 +926,9 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   document.getElementById("new-chat")?.addEventListener("click", () => {
-    const chats = loadChats();
-    const id = makeId();
-    const now = Date.now();
-    chats.push({ id, title: "New chat", createdAt: now, updatedAt: now, messages: [] });
-    saveChats(chats);
-    setActiveChatId(id);
+    addNewChatAndActivate();
     renderChatList();
     loadActiveChatMessagesIntoUI();
-  });
-
-  document.getElementById("web-search-btn")?.addEventListener("click", (e) => {
-    e.preventDefault();
-    toggleWebSearch();
   });
 
   document.getElementById("login-btn")?.addEventListener("click", (e) => {
