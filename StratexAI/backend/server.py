@@ -360,23 +360,31 @@ def detect_file_type(message: str) -> str:
     return "pdf"
 
 def explicit_file_request(message: str) -> bool:
-
+    """
+    Check if user explicitly requests a file download/generation.
+    Only returns True if user uses action verbs like "create", "generate", "download", "save".
+    """
     m = (message or "").lower()
 
-    keywords = [
-        "pdf",
-        "docx",
-        "doc",
-        "word",
-        "xlsx",
-        "xls",
-        "excel",
-        "пдф",
-        "ворд",
-        "эксель",
+    # Action verbs that indicate file generation request
+    action_keywords = [
+        "create", "generate", "download", "save", "export", "make", "build",
+        "создай", "создать", "сгенерируй", "скачай", "скачать", "сохрани", "сохранить",
+        "экспорт", "экспортировать", "сделай", "сделать", "построй", "построить"
     ]
 
-    return any(k in m for k in keywords)
+    # File format keywords
+    file_keywords = [
+        "pdf", "docx", "doc", "word", "xlsx", "xls", "excel",
+        "пдф", "ворд", "эксель", "документ", "файл"
+    ]
+
+    # Check if message contains both action verb AND file keyword
+    has_action = any(action in m for action in action_keywords)
+    has_file = any(keyword in m for keyword in file_keywords)
+
+    # Only return True if BOTH action verb and file keyword are present
+    return has_action and has_file
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL", "postgresql+psycopg2://postgres:alm@localhost:5432/stratex"
@@ -441,7 +449,14 @@ def db_get_history(user_id: str, limit: int = 20):
 
 app = Flask(__name__)
 
-CORS(app)
+# Configure CORS to allow all origins (including file:// and null origin)
+CORS(app, resources={
+    r"/api/*": {
+        "origins": "*",
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
 
 @app.route("/api/generate-file", methods=["POST"])
 def generate_file():
@@ -907,44 +922,38 @@ Use context from previous messages when relevant."""
             search_data = web_search(message)
 
             if search_data.get("error"):
+                # Do not fail the whole chat when web search is unavailable.
+                # This can happen when TAVILY_API_KEY is not set or web search fails.
+                # We simply continue without search context.
+                print("[chat] Web search unavailable or error; continuing without web context")
+                intent["needs_search"] = False
+                search_context = None
+                search_results = None
+            else:
+                sources = search_data.get("sources", [])
 
-                return (
-                    jsonify(
-                        {
-                            "success": False,
-                            "message": "Live web search is unavailable. Please enable TAVILY_API_KEY.",
-                            "require_auth": False,
-                        }
-                    ),
-                    503,
-                )
+                if not sources:
+                    # Do not fail the whole chat when web search yields no sources.
+                    # This case can happen during document workflows where the message
+                    # accidentally triggers needs_search, or when Tavily returns no results.
+                    # We simply continue without search context.
+                    print("[chat] Web search returned 0 sources; continuing without web context")
+                    intent["needs_search"] = False
+                    search_context = None
+                    search_results = None
+                else:
+                    # Only build search context if we have sources
+                    answer = search_data.get("answer", "")
 
-            sources = search_data.get("sources", [])
+                    search_context = f"Up-to-date information:\n{answer}\n\nSources:\n"
 
-            if not sources:
+                    for source in sources:
 
-                return (
-                    jsonify(
-                        {
-                            "success": False,
-                            "message": "No sources found for this request. Please уточните запрос.",
-                            "require_auth": False,
-                        }
-                    ),
-                    502,
-                )
+                        search_context += (
+                            f"- {source.get('title','')}: {source.get('content','')}\n"
+                        )
 
-            answer = search_data.get("answer", "")
-
-            search_context = f"Up-to-date information:\n{answer}\n\nSources:\n"
-
-            for source in sources:
-
-                search_context += (
-                    f"- {source.get('title','')}: {source.get('content','')}\n"
-                )
-
-            search_results = search_data
+                    search_results = search_data
 
         system_prompt = """You are Stratex AI, a professional business assistant.
 
@@ -1004,7 +1013,16 @@ After answering ? generate in the chosen format."""
 
         ai_response = markdown_to_html(ai_response)
 
-        if intent.get("needs_document") and explicit_file_request(message):
+        # Don't generate file if this is a document analysis response
+        # Check if message contains document analysis pattern (starts with "Document" or contains analysis markers)
+        is_document_analysis_response = (
+            message.startswith("Document") or 
+            message.startswith("Документ") or
+            "Please use these document analyses" in message or
+            "Document \"" in message
+        )
+
+        if intent.get("needs_document") and explicit_file_request(message) and not is_document_analysis_response:
 
             try:
 
@@ -1043,8 +1061,9 @@ After answering ? generate in the chosen format."""
 
                 base_url = request.host_url.rstrip("/")
 
-                if base_url.startswith("http://"):
-
+                # Only convert http to https for production (not localhost)
+                # For localhost, keep http:// as it won't work with https
+                if base_url.startswith("http://") and "localhost" not in base_url and "127.0.0.1" not in base_url:
                     base_url = "https://" + base_url[len("http://") :]
 
                 download_url = f"{base_url}/api/download/{os.path.basename(path)}"
