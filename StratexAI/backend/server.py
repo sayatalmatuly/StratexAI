@@ -3,6 +3,7 @@ import json
 import os
 import re
 from datetime import datetime
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 import PyPDF2
 import requests
@@ -14,7 +15,8 @@ from openpyxl import Workbook
 from openpyxl.styles import Font
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
-from sqlalchemy import Column, DateTime, Integer, String, Text, create_engine
+from sqlalchemy import Column, DateTime, Integer, String, Text, create_engine, text
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -341,6 +343,32 @@ def dedupe_document_content(text: str) -> str:
 
     return "\n\n".join(deduped).strip()
 
+
+def _ensure_sslmode_require_for_prod(database_url: str) -> str:
+    """
+    Ensure sslmode=require for non-local PostgreSQL URLs (for production hosting).
+    Does not force SSL for localhost/127.0.0.1 to keep local development simple.
+    """
+    try:
+        parsed = urlparse(database_url)
+        if not parsed.scheme.startswith("postgresql"):
+            return database_url
+
+        host = (parsed.hostname or "").lower()
+        if host in ("localhost", "127.0.0.1"):
+            return database_url
+
+        query_params = dict(parse_qsl(parsed.query, keep_blank_values=True))
+        if "sslmode" not in query_params:
+            query_params["sslmode"] = "require"
+            parsed = parsed._replace(query=urlencode(query_params))
+            return urlunparse(parsed)
+
+        return database_url
+    except Exception:
+        # In case of any parsing issues, fall back to the original URL
+        return database_url
+
 def detect_file_type(message: str) -> str:
 
     m = (message or "").lower()
@@ -386,15 +414,45 @@ def explicit_file_request(message: str) -> bool:
     # Only return True if BOTH action verb and file keyword are present
     return has_action and has_file
 
-DATABASE_URL = os.getenv(
+
+def _test_connection(db_engine):
+    with db_engine.connect() as conn:
+        conn.execute(text("SELECT 1"))
+
+
+DATABASE_URL_PRIVATE_RAW = os.getenv(
     "DATABASE_URL", "postgresql+psycopg2://postgres:alm@localhost:5432/stratex"
 )
+DATABASE_URL_PUBLIC_RAW = os.getenv("DATABASE_PUBLIC_URL")
 
-engine = create_engine(DATABASE_URL, echo=False, future=True)
+DATABASE_URL_PRIVATE = (
+    _ensure_sslmode_require_for_prod(DATABASE_URL_PRIVATE_RAW)
+    if DATABASE_URL_PRIVATE_RAW
+    else None
+)
+DATABASE_URL_PUBLIC = (
+    _ensure_sslmode_require_for_prod(DATABASE_URL_PUBLIC_RAW)
+    if DATABASE_URL_PUBLIC_RAW
+    else None
+)
+
+DATABASE_URL = DATABASE_URL_PRIVATE or DATABASE_URL_PUBLIC
+if not DATABASE_URL:
+    raise RuntimeError("No PostgreSQL URL configured. Set DATABASE_URL or DATABASE_PUBLIC_URL.")
+
+engine = create_engine(
+    DATABASE_URL,
+    echo=False,
+    future=True,
+    pool_pre_ping=True,
+    pool_recycle=300,
+)
 
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 Base = declarative_base()
+
+_CURRENT_DB_TARGET = "private" if DATABASE_URL == DATABASE_URL_PRIVATE else "public"
 
 class ChatMessage(Base):
 
@@ -412,40 +470,102 @@ class ChatMessage(Base):
 
 Base.metadata.create_all(engine)
 
+try:
+    _test_connection(engine)
+except OperationalError as e:
+    print(f"[db] Initial connection to { _CURRENT_DB_TARGET } database failed: {e}")
+    if DATABASE_URL_PUBLIC and _CURRENT_DB_TARGET == "private":
+        print("[db] Trying to fall back to public database URL")
+        fallback_engine = create_engine(
+            DATABASE_URL_PUBLIC,
+            echo=False,
+            future=True,
+            pool_pre_ping=True,
+            pool_recycle=300,
+        )
+        _test_connection(fallback_engine)
+        engine.dispose()
+        engine = fallback_engine
+        SessionLocal.configure(bind=engine)
+        DATABASE_URL = DATABASE_URL_PUBLIC
+        _CURRENT_DB_TARGET = "public"
+        Base.metadata.create_all(engine)
+    else:
+        raise
+
+
+def _switch_engine_to_public_on_error(error: OperationalError) -> bool:
+    """
+    On OperationalError against the private DB, switch engine to the public URL if available.
+    Returns True when the switch succeeds, False otherwise.
+    """
+    global engine, DATABASE_URL, _CURRENT_DB_TARGET
+
+    if not DATABASE_URL_PUBLIC or _CURRENT_DB_TARGET == "public":
+        return False
+
+    print(f"[db] OperationalError on private DB, switching to public: {error}")
+    try:
+        new_engine = create_engine(
+            DATABASE_URL_PUBLIC,
+            echo=False,
+            future=True,
+            pool_pre_ping=True,
+            pool_recycle=300,
+        )
+        _test_connection(new_engine)
+        engine.dispose()
+        engine = new_engine
+        SessionLocal.configure(bind=engine)
+        DATABASE_URL = DATABASE_URL_PUBLIC
+        _CURRENT_DB_TARGET = "public"
+        Base.metadata.create_all(engine)
+        return True
+    except OperationalError as e:
+        print(f"[db] Fallback to public DB failed: {e}")
+        return False
+
+
+def _run_db_operation(operation):
+    """
+    Run a DB operation with automatic fallback from private to public database on OperationalError.
+    """
+    try:
+        return operation()
+    except OperationalError as e:
+        if _switch_engine_to_public_on_error(e):
+            return operation()
+        raise
+
 def db_add_message(user_id: str, role: str, content: str):
 
-    db = SessionLocal()
+    def _op():
+        db = SessionLocal()
+        try:
+            db.add(ChatMessage(user_id=user_id, role=role, content=content))
+            db.commit()
+        finally:
+            db.close()
 
-    try:
-
-        db.add(ChatMessage(user_id=user_id, role=role, content=content))
-
-        db.commit()
-
-    finally:
-
-        db.close()
+    _run_db_operation(_op)
 
 def db_get_history(user_id: str, limit: int = 20):
 
-    db = SessionLocal()
+    def _op():
+        db = SessionLocal()
+        try:
+            rows = (
+                db.query(ChatMessage)
+                .filter(ChatMessage.user_id == user_id)
+                .order_by(ChatMessage.created_at.asc())
+                .all()
+            )
+            rows_limited = rows[-limit:]
+            return [{"role": r.role, "content": r.content} for r in rows_limited]
+        finally:
+            db.close()
 
-    try:
-
-        rows = (
-            db.query(ChatMessage)
-            .filter(ChatMessage.user_id == user_id)
-            .order_by(ChatMessage.created_at.asc())
-            .all()
-        )
-
-        rows = rows[-limit:]
-
-        return [{"role": r.role, "content": r.content} for r in rows]
-
-    finally:
-
-        db.close()
+    return _run_db_operation(_op)
 
 app = Flask(__name__)
 
